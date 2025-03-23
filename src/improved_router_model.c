@@ -613,8 +613,8 @@ void init_topics() {
 // ファイルから知識を読み込む
 void load_knowledge_from_file(const char* filename, int topic_id) {
     char filepath[256];
-    // 知識ベースディレクトリから探す
-    sprintf(filepath, "knowledge_base/%s", filename);
+    // 知識ファイルディレクトリから探す（絶対パスを使用）
+    sprintf(filepath, "/workspace/data/knowledge_files/%s", filename);
     FILE* file = fopen(filepath, "r");
     
     if (!file) {
