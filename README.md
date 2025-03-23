@@ -16,6 +16,29 @@
 
 このプロジェクトは、C言語を主体として軽量なAI機能を実装することを目的としています。大規模な深層学習モデルとは異なり、形態素解析によるトークナイズと独自のルールベースアプローチを組み合わせた、リソース効率の良いAIシステムを構築しています。
 
+### 📁 ディレクトリ構造
+
+```
+/
+├── bin/           - コンパイル済みバイナリ
+├── data/          - データファイル
+│   ├── japanese_words.txt  - 日本語単語リスト
+│   ├── knowledge_base/     - 知識ベース
+│   ├── knowledge_files/    - トピック別知識ファイル
+│   ├── models/             - モデルデータ
+│   ├── training_data/      - 学習データ
+│   ├── vector_db/          - ベクトルデータベース
+│   └── word_vectors.dat    - 単語ベクトルデータ
+└── src/           - ソースコード
+    ├── analyzers/          - テキスト解析モジュール
+    ├── compressors/        - データ圧縮モジュール
+    ├── generators/         - 文生成モジュール
+    ├── include/            - 共通ヘッダとユーティリティ
+    ├── routers/            - ルーティングモジュール
+    ├── vector_search/      - ベクトル検索モジュール
+    └── main.c              - メインプログラム
+```
+
 ### 🔍 特徴
 
 - **軽量設計**: 最小限のリソースで動作
@@ -34,6 +57,7 @@
 
 - C コンパイラ (gcc/clang)
 - MeCab (形態素解析エンジン)
+- libcurl (ウェブ検索機能用)
 
 ### Macでのセットアップ
 
@@ -41,15 +65,16 @@
 # Homebrewがインストールされていない場合はインストール
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# MeCabとその辞書をインストール
+# MeCabとその辞書、およびlibcurlをインストール
 brew install mecab mecab-ipadic curl
 
 # リポジトリをクローン
 git clone https://github.com/enablerdao/GeneLLM.git
 cd GeneLLM
 
-# ビルド
-gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
+# ビルドスクリプトを実行
+chmod +x build.sh
+./build.sh
 ```
 
 ### Linuxでのセットアップ
@@ -63,21 +88,22 @@ sudo apt-get install -y gcc make mecab libmecab-dev mecab-ipadic-utf8 libcurl4-o
 git clone https://github.com/enablerdao/GeneLLM.git
 cd GeneLLM
 
-# ビルド
-gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
+# ビルドスクリプトを実行
+chmod +x build.sh
+./build.sh
 ```
 
 ### 🧪 動作確認
 
 ```bash
 # ステータスを確認
-./main status
+./bin/main status
 
 # 対話モードを試す
-./main -i
+./bin/main -i
 
 # 単一のクエリを処理
-./main "量子コンピュータの仕組みを教えてください"
+./bin/main "量子コンピュータの仕組みを教えてください"
 ```
 
 ## 💡 実装機能
@@ -728,30 +754,49 @@ void displayContent() {
 
 ## 🛠️ ビルド方法
 
-### メインプログラムのビルド
+### ビルドスクリプトを使用する
+
+リポジトリには、必要なすべてのコンポーネントをビルドするスクリプトが含まれています。
+
+```bash
+# 実行権限を付与
+chmod +x build.sh
+
+# ビルドを実行
+./build.sh
+```
+
+このスクリプトは以下の処理を行います：
+1. 必要なディレクトリを作成
+2. メインプログラムをビルド
+3. 各モジュールを個別にビルド
+
+### 手動でビルドする場合
+
+メインプログラムのみをビルドする場合：
 
 ```bash
 # メインプログラム（すべての機能を含む）
 gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
 ```
 
-### 個別モジュールのビルド
+個別のモジュールをビルドする場合：
 
 ```bash
 # 構文解析器
-gcc -o bin/simple_analyzer src/analyzers/simple_analyzer.c -Wall -Wextra -std=c99
+gcc -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c -lmecab
 
 # DNA圧縮
-gcc -o bin/dna_compressor src/compressors/dna_compressor.c -Wall -Wextra -std=c99
+gcc -Wall -Wextra -std=c99 -o bin/dna_compressor src/compressors/dna_compressor.c
 
 # ベクトル検索
-gcc -o bin/vector_search src/vector_search/vector_search.c -Wall -Wextra -std=c99 -lm
+gcc -Wall -Wextra -std=c99 -o bin/vector_search src/vector_search/vector_search.c -lm
 
 # グラフ生成器
-gcc -o bin/graph_generator src/generators/graph_generator.c -Wall -Wextra -std=c99
+gcc -Wall -Wextra -std=c99 -o bin/graph_generator src/generators/graph_generator.c
 
 # ルーターモデル
-gcc -o bin/router_model src/routers/router_model.c -lmecab
+gcc -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c -lmecab
 ```
 
 ## 🔮 今後の展望
