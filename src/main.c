@@ -615,8 +615,8 @@ void init_topics() {
 // ファイルから知識を読み込む
 void load_knowledge_from_file(const char* filename, int topic_id) {
     char filepath[256];
-    // 知識ベースディレクトリから探す
-    sprintf(filepath, "knowledge_base/%s", filename);
+    // 知識ファイルディレクトリから探す（相対パスを使用）
+    sprintf(filepath, "data/knowledge_files/%s", filename);
     FILE* file = fopen(filepath, "r");
     
     if (!file) {
@@ -624,22 +624,25 @@ void load_knowledge_from_file(const char* filename, int topic_id) {
         return;
     }
     
-    char line[MAX_KNOWLEDGE_TEXT];
-    while (fgets(line, sizeof(line), file)) {
-        // 改行を削除
-        size_t len = strlen(line);
-        if (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
-            line[len-1] = '\0';
-        }
-        
-        // 空行をスキップ
-        if (strlen(line) == 0) {
-            continue;
-        }
-        
-        // 知識を追加
-        add_knowledge(topic_id, line, 1.0f);
+    // ファイル全体を読み込む
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    
+    char* buffer = (char*)malloc(file_size + 1);
+    if (!buffer) {
+        fprintf(stderr, "メモリ確保に失敗しました\n");
+        fclose(file);
+        return;
     }
+    
+    size_t read_size = fread(buffer, 1, file_size, file);
+    buffer[read_size] = '\0';
+    
+    // 全体を一つの知識として追加
+    add_knowledge(topic_id, buffer, 1.0f);
+    
+    free(buffer);
     
     fclose(file);
     // デバッグ情報を非表示
