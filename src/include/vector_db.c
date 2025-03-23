@@ -14,6 +14,10 @@ void init_global_vector_db() {
     const char* vector_file = "data/word_vectors.dat";
     const char* japanese_words_file = "data/japanese_words.txt";
     
+    // 環境変数でデバッグモードをチェック
+    const char* debug_env = getenv("DEBUG");
+    bool debug_mode = debug_env && (strcmp(debug_env, "1") == 0 || strcmp(debug_env, "true") == 0);
+    
     // 日本語単語ファイルの最終更新時刻を取得
     struct stat japanese_words_stat;
     time_t japanese_words_mtime = 0;
@@ -33,9 +37,18 @@ void init_global_vector_db() {
     if (file && (japanese_words_mtime <= vector_file_mtime)) {
         // ベクトルファイルが存在し、日本語単語ファイルより新しい場合は読み込む
         fclose(file);
-        printf("単語ベクトルファイルを読み込んでいます...\n");
+        
+        // デバッグモードの場合のみメッセージを表示
+        if (debug_mode) {
+            printf("単語ベクトルファイルを読み込んでいます...\n");
+        }
+        
         int loaded = load_word_vectors(vector_file, &global_vector_db, 0);
-        printf("%d 個の単語ベクトルを読み込みました\n", loaded);
+        
+        // デバッグモードの場合のみメッセージを表示
+        if (debug_mode) {
+            printf("%d 個の単語ベクトルを読み込みました\n", loaded);
+        }
     } else {
         // ファイルが存在しないか、日本語単語ファイルが更新されている場合は再生成
         if (!file) {
