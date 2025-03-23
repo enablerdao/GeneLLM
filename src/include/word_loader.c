@@ -209,9 +209,9 @@ int generate_large_word_vector_dataset(VectorDB* db, int target_size) {
     // 日本語単語リストファイルを読み込む
     FILE* file = fopen("data/japanese_words.txt", "r");
     if (!file) {
-        printf("日本語単語リストファイルが見つかりません。ランダムベクトルを生成します。\n");
-        // テスト用のベクトルを追加する関数を使用
-        add_test_vectors_to_db(db, remaining);
+        printf("日本語単語リストファイルが見つかりません。処理を中止します。\n");
+        // 単語リストがない場合は処理を中止
+        return db->size;
     } else {
         char word[256];
         int added = 0;
@@ -263,11 +263,44 @@ int generate_large_word_vector_dataset(VectorDB* db, int target_size) {
         
         fclose(file);
         
-        // 単語リストが足りない場合は残りをランダムベクトルで補完
+        // 単語リストが足りない場合は、単語リストを繰り返し使用
         if (added < remaining) {
-            printf("単語リストが不足しています。残り %d ベクトルをランダム生成します。\n", 
-                   remaining - added);
-            add_test_vectors_to_db(db, remaining - added);
+            printf("単語リストが不足しています。単語リストを繰り返し使用します。\n");
+            // 単語リストを再度開く
+            file = fopen("data/japanese_words.txt", "r");
+            if (file) {
+                while (added < remaining && fgets(word, sizeof(word), file)) {
+                    // 改行を削除
+                    size_t len = strlen(word);
+                    if (len > 0 && word[len-1] == '\n') {
+                        word[len-1] = '\0';
+                    }
+                    
+                    // 空行をスキップ
+                    if (strlen(word) == 0) {
+                        continue;
+                    }
+                    
+                    // 単語からベクトルを生成
+                    float vector[VECTOR_DIM];
+                    for (int i = 0; i < VECTOR_DIM; i++) {
+                        float val = 0.0f;
+                        for (size_t j = 0; j < strlen(word); j++) {
+                            val += (float)(word[j] * (j+1) * (i+1)) / 10000.0f;
+                        }
+                        vector[i] = fmodf(val, 2.0f) - 1.0f;
+                    }
+                    
+                    normalize_vector(vector);
+                    
+                    if (add_vector(db, vector, word_id++)) {
+                        added++;
+                    } else {
+                        break;
+                    }
+                }
+                fclose(file);
+            }
         }
     }
     
