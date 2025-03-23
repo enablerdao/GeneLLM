@@ -1790,8 +1790,8 @@ int main(int argc, char* argv[]) {
     // 学習データベースを初期化
     learning_db = learning_db_init("data/learning_db.txt");
     
-    // 知識ベースを初期化（初期化前に既存のデータを削除）
-    system("rm -rf data/knowledge_base/*");
+    // 知識ベースを初期化（既存のデータを保持）
+    // system("rm -rf data/knowledge_base/*"); // 既存のナレッジベースを削除しないように変更
     knowledge_base = knowledge_base_init("data/knowledge_base");
     
     // コマンドライン引数の解析
