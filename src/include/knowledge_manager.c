@@ -358,138 +358,309 @@ bool knowledge_base_load(KnowledgeBase* kb) {
     // ベクトルデータベースをクリア
     init_vector_db(&kb->vector_db);
     
-    while ((entry = readdir(dir)) != NULL) {
-        // .mdファイルのみ処理
-        size_t len = strlen(entry->d_name);
-        if (len < 4 || strcmp(entry->d_name + len - 3, ".md") != 0) {
-            continue;
+    // サブディレクトリも含めて処理するための関数
+    bool process_directory(const char* dir_path) {
+        DIR* subdir = opendir(dir_path);
+        if (!subdir) {
+            return false;
         }
         
-        // ファイルパスを生成
-        char filepath[512];
-        snprintf(filepath, sizeof(filepath), "%s/%s", kb->base_dir, entry->d_name);
-        
-        // ファイルを開く
-        FILE* file = fopen(filepath, "r");
-        if (!file) {
-            continue;
-        }
-        
-        // 容量が足りない場合は拡張
-        if (kb->count >= kb->capacity) {
-            int new_capacity = kb->capacity * 2;
-            KnowledgeDocument* new_documents = (KnowledgeDocument*)realloc(kb->documents, sizeof(KnowledgeDocument) * new_capacity);
-            if (!new_documents) {
-                fprintf(stderr, "メモリ割り当てエラー: 知識ベースの拡張に失敗しました\n");
-                fclose(file);
-                continue;
-            }
-            kb->documents = new_documents;
-            kb->capacity = new_capacity;
-        }
-        
-        // ドキュメントを初期化
-        memset(&kb->documents[kb->count], 0, sizeof(KnowledgeDocument));
-        
-        // タイトルを設定（ファイル名から）
-        strncpy(kb->documents[kb->count].title, entry->d_name, len - 3);
-        kb->documents[kb->count].title[len - 3] = '\0';
-        
-        // メタデータを読み込む
-        char line[MAX_LINE_LENGTH];
-        bool in_metadata = false;
-        bool in_content = false;
-        
-        while (fgets(line, sizeof(line), file)) {
-            // 改行を削除
-            size_t line_len = strlen(line);
-            if (line_len > 0 && line[line_len - 1] == '\n') {
-                line[line_len - 1] = '\0';
-                line_len--;
-            }
-            
-            // メタデータセクションの開始/終了
-            if (strcmp(line, "---") == 0) {
-                if (!in_metadata) {
-                    in_metadata = true;
-                } else {
-                    in_metadata = false;
-                    in_content = true;
-                    continue;
-                }
+        struct dirent* subentry;
+        while ((subentry = readdir(subdir)) != NULL) {
+            // "."と".."は無視
+            if (strcmp(subentry->d_name, ".") == 0 || strcmp(subentry->d_name, "..") == 0) {
                 continue;
             }
             
-            if (in_metadata) {
-                // メタデータの解析
-                char* key = line;
-                char* value = strchr(line, ':');
-                if (value) {
-                    *value = '\0';
-                    value++;
-                    // 先頭の空白をスキップ
-                    while (*value == ' ') {
-                        value++;
+            char subpath[512];
+            snprintf(subpath, sizeof(subpath), "%s/%s", dir_path, subentry->d_name);
+            
+            struct stat st;
+            if (stat(subpath, &st) == 0) {
+                if (S_ISDIR(st.st_mode)) {
+                    // サブディレクトリを再帰的に処理
+                    process_directory(subpath);
+                } else if (S_ISREG(st.st_mode)) {
+                    // .mdファイルのみ処理
+                    size_t len = strlen(subentry->d_name);
+                    if (len < 4 || strcmp(subentry->d_name + len - 3, ".md") != 0) {
+                        continue;
                     }
                     
-                    if (strcmp(key, "category") == 0) {
-                        strncpy(kb->documents[kb->count].category, value, sizeof(kb->documents[kb->count].category) - 1);
-                        kb->documents[kb->count].category[sizeof(kb->documents[kb->count].category) - 1] = '\0';
-                    } else if (strcmp(key, "tags") == 0) {
-                        // タグをカンマで分割
-                        char* tag = strtok(value, ",");
-                        kb->documents[kb->count].tag_count = 0;
-                        while (tag && kb->documents[kb->count].tag_count < 10) {
-                            // 先頭と末尾の空白をスキップ
-                            while (*tag == ' ') {
-                                tag++;
-                            }
-                            char* end = tag + strlen(tag) - 1;
-                            while (end > tag && *end == ' ') {
-                                *end = '\0';
-                                end--;
-                            }
-                            
-                            strncpy(kb->documents[kb->count].tags[kb->documents[kb->count].tag_count], tag, sizeof(kb->documents[kb->count].tags[0]) - 1);
-                            kb->documents[kb->count].tags[kb->documents[kb->count].tag_count][sizeof(kb->documents[kb->count].tags[0]) - 1] = '\0';
-                            kb->documents[kb->count].tag_count++;
-                            
-                            tag = strtok(NULL, ",");
+                    // ファイルを開く
+                    FILE* file = fopen(subpath, "r");
+                    if (!file) {
+                        continue;
+                    }
+                    
+                    // 容量が足りない場合は拡張
+                    if (kb->count >= kb->capacity) {
+                        int new_capacity = kb->capacity * 2;
+                        KnowledgeDocument* new_documents = (KnowledgeDocument*)realloc(kb->documents, sizeof(KnowledgeDocument) * new_capacity);
+                        if (!new_documents) {
+                            fprintf(stderr, "メモリ割り当てエラー: 知識ベースの拡張に失敗しました\n");
+                            fclose(file);
+                            continue;
                         }
-                    } else if (strcmp(key, "created_at") == 0) {
-                        struct tm tm = {0};
-                        if (strptime(value, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
-                            kb->documents[kb->count].created_at = mktime(&tm);
+                        kb->documents = new_documents;
+                        kb->capacity = new_capacity;
+                    }
+                    
+                    // ドキュメントを初期化
+                    memset(&kb->documents[kb->count], 0, sizeof(KnowledgeDocument));
+                    
+                    // タイトルを設定（ファイル名から）
+                    strncpy(kb->documents[kb->count].title, subentry->d_name, len - 3);
+                    kb->documents[kb->count].title[len - 3] = '\0';
+                    
+                    // メタデータを読み込む
+                    char line[MAX_LINE_LENGTH];
+                    bool in_metadata = false;
+                    bool in_content = false;
+                    
+                    while (fgets(line, sizeof(line), file)) {
+                        // 改行を削除
+                        size_t line_len = strlen(line);
+                        if (line_len > 0 && line[line_len - 1] == '\n') {
+                            line[line_len - 1] = '\0';
+                            line_len--;
                         }
-                    } else if (strcmp(key, "updated_at") == 0) {
-                        struct tm tm = {0};
-                        if (strptime(value, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
-                            kb->documents[kb->count].updated_at = mktime(&tm);
+                        
+                        // メタデータセクションの開始/終了
+                        if (strcmp(line, "---") == 0) {
+                            if (!in_metadata) {
+                                in_metadata = true;
+                            } else {
+                                in_metadata = false;
+                                in_content = true;
+                                continue;
+                            }
+                            continue;
+                        }
+                        
+                        if (in_metadata) {
+                            // メタデータの解析
+                            char* key = line;
+                            char* value = strchr(line, ':');
+                            if (value) {
+                                *value = '\0';
+                                value++;
+                                // 先頭の空白をスキップ
+                                while (*value == ' ') {
+                                    value++;
+                                }
+                                
+                                if (strcmp(key, "category") == 0) {
+                                    strncpy(kb->documents[kb->count].category, value, sizeof(kb->documents[kb->count].category) - 1);
+                                    kb->documents[kb->count].category[sizeof(kb->documents[kb->count].category) - 1] = '\0';
+                                } else if (strcmp(key, "tags") == 0) {
+                                    // タグをカンマで分割
+                                    char* tag = strtok(value, ",");
+                                    kb->documents[kb->count].tag_count = 0;
+                                    while (tag && kb->documents[kb->count].tag_count < 10) {
+                                        // 先頭と末尾の空白をスキップ
+                                        while (*tag == ' ') {
+                                            tag++;
+                                        }
+                                        char* end = tag + strlen(tag) - 1;
+                                        while (end > tag && *end == ' ') {
+                                            *end = '\0';
+                                            end--;
+                                        }
+                                        
+                                        strncpy(kb->documents[kb->count].tags[kb->documents[kb->count].tag_count], tag, sizeof(kb->documents[kb->count].tags[0]) - 1);
+                                        kb->documents[kb->count].tags[kb->documents[kb->count].tag_count][sizeof(kb->documents[kb->count].tags[0]) - 1] = '\0';
+                                        kb->documents[kb->count].tag_count++;
+                                        
+                                        tag = strtok(NULL, ",");
+                                    }
+                                } else if (strcmp(key, "created_at") == 0) {
+                                    struct tm tm = {0};
+                                    if (strptime(value, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
+                                        kb->documents[kb->count].created_at = mktime(&tm);
+                                    }
+                                } else if (strcmp(key, "updated_at") == 0) {
+                                    struct tm tm = {0};
+                                    if (strptime(value, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
+                                        kb->documents[kb->count].updated_at = mktime(&tm);
+                                    }
+                                }
+                            }
+                        } else if (in_content) {
+                            // 内容を追加
+                            size_t content_len = strlen(kb->documents[kb->count].content);
+                            size_t remaining = sizeof(kb->documents[kb->count].content) - content_len - 1;
+                            
+                            if (remaining > 0) {
+                                strncat(kb->documents[kb->count].content, line, remaining);
+                                strncat(kb->documents[kb->count].content, "\n", remaining - strlen(line));
+                            }
                         }
                     }
-                }
-            } else if (in_content) {
-                // 内容を追加
-                size_t content_len = strlen(kb->documents[kb->count].content);
-                size_t remaining = sizeof(kb->documents[kb->count].content) - content_len - 1;
-                
-                if (remaining > 0) {
-                    strncat(kb->documents[kb->count].content, line, remaining);
-                    strncat(kb->documents[kb->count].content, "\n", remaining - strlen(line));
+                    
+                    fclose(file);
+                    
+                    // ドキュメントをベクトル化してベクトルデータベースに追加
+                    float* vector = knowledge_document_vectorize(&kb->documents[kb->count]);
+                    if (vector) {
+                        add_vector(&kb->vector_db, vector, kb->count);
+                        free(vector);
+                    }
+                    
+                    kb->count++;
                 }
             }
         }
         
-        fclose(file);
-        
-        // ドキュメントをベクトル化してベクトルデータベースに追加
-        float* vector = knowledge_document_vectorize(&kb->documents[kb->count]);
-        if (vector) {
-            add_vector(&kb->vector_db, vector, kb->count);
-            free(vector);
+        closedir(subdir);
+        return true;
+    }
+    
+    // ルートディレクトリを処理
+    while ((entry = readdir(dir)) != NULL) {
+        // "."と".."は無視
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
         }
         
-        kb->count++;
+        char path[512];
+        snprintf(path, sizeof(path), "%s/%s", kb->base_dir, entry->d_name);
+        
+        struct stat st;
+        if (stat(path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                // サブディレクトリを処理
+                process_directory(path);
+            } else if (S_ISREG(st.st_mode)) {
+                // .mdファイルのみ処理
+                size_t len = strlen(entry->d_name);
+                if (len < 4 || strcmp(entry->d_name + len - 3, ".md") != 0) {
+                    continue;
+                }
+                
+                // ファイルを開く
+                FILE* file = fopen(path, "r");
+                if (!file) {
+                    continue;
+                }
+                
+                // 容量が足りない場合は拡張
+                if (kb->count >= kb->capacity) {
+                    int new_capacity = kb->capacity * 2;
+                    KnowledgeDocument* new_documents = (KnowledgeDocument*)realloc(kb->documents, sizeof(KnowledgeDocument) * new_capacity);
+                    if (!new_documents) {
+                        fprintf(stderr, "メモリ割り当てエラー: 知識ベースの拡張に失敗しました\n");
+                        fclose(file);
+                        continue;
+                    }
+                    kb->documents = new_documents;
+                    kb->capacity = new_capacity;
+                }
+                
+                // ドキュメントを初期化
+                memset(&kb->documents[kb->count], 0, sizeof(KnowledgeDocument));
+                
+                // タイトルを設定（ファイル名から）
+                strncpy(kb->documents[kb->count].title, entry->d_name, len - 3);
+                kb->documents[kb->count].title[len - 3] = '\0';
+                
+                // メタデータを読み込む
+                char line[MAX_LINE_LENGTH];
+                bool in_metadata = false;
+                bool in_content = false;
+                
+                while (fgets(line, sizeof(line), file)) {
+                    // 改行を削除
+                    size_t line_len = strlen(line);
+                    if (line_len > 0 && line[line_len - 1] == '\n') {
+                        line[line_len - 1] = '\0';
+                        line_len--;
+                    }
+                    
+                    // メタデータセクションの開始/終了
+                    if (strcmp(line, "---") == 0) {
+                        if (!in_metadata) {
+                            in_metadata = true;
+                        } else {
+                            in_metadata = false;
+                            in_content = true;
+                            continue;
+                        }
+                        continue;
+                    }
+                    
+                    if (in_metadata) {
+                        // メタデータの解析
+                        char* key = line;
+                        char* value = strchr(line, ':');
+                        if (value) {
+                            *value = '\0';
+                            value++;
+                            // 先頭の空白をスキップ
+                            while (*value == ' ') {
+                                value++;
+                            }
+                            
+                            if (strcmp(key, "category") == 0) {
+                                strncpy(kb->documents[kb->count].category, value, sizeof(kb->documents[kb->count].category) - 1);
+                                kb->documents[kb->count].category[sizeof(kb->documents[kb->count].category) - 1] = '\0';
+                            } else if (strcmp(key, "tags") == 0) {
+                                // タグをカンマで分割
+                                char* tag = strtok(value, ",");
+                                kb->documents[kb->count].tag_count = 0;
+                                while (tag && kb->documents[kb->count].tag_count < 10) {
+                                    // 先頭と末尾の空白をスキップ
+                                    while (*tag == ' ') {
+                                        tag++;
+                                    }
+                                    char* end = tag + strlen(tag) - 1;
+                                    while (end > tag && *end == ' ') {
+                                        *end = '\0';
+                                        end--;
+                                    }
+                                    
+                                    strncpy(kb->documents[kb->count].tags[kb->documents[kb->count].tag_count], tag, sizeof(kb->documents[kb->count].tags[0]) - 1);
+                                    kb->documents[kb->count].tags[kb->documents[kb->count].tag_count][sizeof(kb->documents[kb->count].tags[0]) - 1] = '\0';
+                                    kb->documents[kb->count].tag_count++;
+                                    
+                                    tag = strtok(NULL, ",");
+                                }
+                            } else if (strcmp(key, "created_at") == 0) {
+                                struct tm tm = {0};
+                                if (strptime(value, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
+                                    kb->documents[kb->count].created_at = mktime(&tm);
+                                }
+                            } else if (strcmp(key, "updated_at") == 0) {
+                                struct tm tm = {0};
+                                if (strptime(value, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
+                                    kb->documents[kb->count].updated_at = mktime(&tm);
+                                }
+                            }
+                        }
+                    } else if (in_content) {
+                        // 内容を追加
+                        size_t content_len = strlen(kb->documents[kb->count].content);
+                        size_t remaining = sizeof(kb->documents[kb->count].content) - content_len - 1;
+                        
+                        if (remaining > 0) {
+                            strncat(kb->documents[kb->count].content, line, remaining);
+                            strncat(kb->documents[kb->count].content, "\n", remaining - strlen(line));
+                        }
+                    }
+                }
+                
+                fclose(file);
+                
+                // ドキュメントをベクトル化してベクトルデータベースに追加
+                float* vector = knowledge_document_vectorize(&kb->documents[kb->count]);
+                if (vector) {
+                    add_vector(&kb->vector_db, vector, kb->count);
+                    free(vector);
+                }
+                
+                kb->count++;
+            }
+        }
     }
     
     closedir(dir);
