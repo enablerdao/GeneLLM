@@ -8,7 +8,9 @@ mkdir -p data/vector_db
 
 # Build main program
 echo "Building main program..."
-gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
+gcc -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
+# Also build to bin directory for compatibility
+cp gllm bin/main
 
 # Build individual modules
 echo "Building individual modules..."
@@ -29,4 +31,4 @@ gcc -Wall -Wextra -std=c99 -o bin/graph_generator src/generators/graph_generator
 gcc -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c -lmecab
 
 echo "Build completed."
-echo "To run: ./bin/main [options]"
+echo "To run: ./gllm [options]"
