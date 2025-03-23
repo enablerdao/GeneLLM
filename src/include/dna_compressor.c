@@ -181,13 +181,13 @@ char* dna_decompress(DnaDictionary* dict, const char* dna_code) {
     text[0] = '\0';
     
     char code[8];
-    int has_subject = 0;
     int has_verb = 0;
     int has_result = 0;
     
     // DNAコードを解析
-    for (int i = 0; i < strlen(dna_code); i += 3) {
-        if (i + 3 <= strlen(dna_code)) {
+    size_t code_len = strlen(dna_code);
+    for (size_t i = 0; i < code_len; i += 3) {
+        if (i + 3 <= code_len) {
             strncpy(code, dna_code + i, 3);
             code[3] = '\0';
             
@@ -196,7 +196,6 @@ char* dna_decompress(DnaDictionary* dict, const char* dna_code) {
                 if (code[0] == 'E') { // 主語
                     strcat(text, word);
                     strcat(text, "は");
-                    has_subject = 1;
                 } else if (code[0] == 'C') { // 動詞
                     strcat(text, word);
                     has_verb = 1;
