@@ -12,19 +12,14 @@
  * @param query 質問文
  * @param response 回答を格納するバッファ
  * @param max_length responseバッファの最大長
- * @param api_key APIキー（NULLの場合は環境変数またはユーザー入力から取得）
  * @return 成功した場合は1、失敗した場合は0
  */
-int query_external_llm(const char* query, char* response, size_t max_length, const char* api_key) {
+int query_external_llm(const char* query, char* response, size_t max_length) {
     char command[MAX_COMMAND_LENGTH];
     FILE* fp;
     
-    // コマンドを構築（APIキーがある場合は引数として渡す）
-    if (api_key != NULL && strlen(api_key) > 0) {
-        snprintf(command, MAX_COMMAND_LENGTH, "python3 llm_query.py \"%s\" \"%s\"", query, api_key);
-    } else {
-        snprintf(command, MAX_COMMAND_LENGTH, "python3 llm_query.py \"%s\"", query);
-    }
+    // コマンドを構築
+    snprintf(command, MAX_COMMAND_LENGTH, "python3 llm_query.py \"%s\"", query);
     
     // コマンドを実行し、出力を取得
     fp = popen(command, "r");

@@ -18,14 +18,13 @@
 #define MAX_PATTERNS 100
 #define MAX_AGENTS 10
 #define MAX_AGENT_NAME 32
+
+// デバッグモードフラグ
+bool debug_mode = false;
 #define MAX_RESPONSE_LEN 2048
 #define MAX_TOPICS 20
 #define MAX_TOPIC_NAME 32
-#define MAX_API_KEY_LEN 256
-#define USE_EXTERNAL_LLM 1  // 外部LLMを使用するかどうかのフラグ
-
-// APIキーを保存する変数
-char api_key[MAX_API_KEY_LEN] = "";
+#define USE_EXTERNAL_LLM 0  // 外部LLMを使用するかどうかのフラグ（無効化）
 #define MAX_KNOWLEDGE_ENTRIES 100
 #define MAX_KNOWLEDGE_TEXT 1024
 
@@ -347,7 +346,7 @@ void init_agents() {
     // フォールバックエージェント
     add_agent("fallback", 0.0f, handle_fallback);
     
-    printf("%d個のエージェントを初期化しました\n", agent_count);
+    // デバッグ情報を非表示
 }
 
 // トピックを初期化
@@ -596,12 +595,14 @@ void init_topics() {
     load_knowledge_from_file("finance_corpus.txt", 14);
     load_knowledge_from_file("entertainment_corpus.txt", 15);
     
-    printf("%d個のトピックを初期化しました\n", topic_count);
+    // デバッグ情報を非表示
 }
 
 // ファイルから知識を読み込む
 void load_knowledge_from_file(const char* filename, int topic_id) {
-    FILE* file = fopen(filename, "r");
+    char filepath[256];
+    sprintf(filepath, "c_implementation/knowledge_files/%s", filename);
+    FILE* file = fopen(filepath, "r");
     if (!file) {
         fprintf(stderr, "知識ファイルを開けませんでした: %s\n", filename);
         return;
@@ -625,8 +626,7 @@ void load_knowledge_from_file(const char* filename, int topic_id) {
     }
     
     fclose(file);
-    printf("知識を読み込みました: %s (%d個)\n", 
-           filename, topics[topic_id].knowledge_count);
+    // デバッグ情報を非表示
 }
 
 // エージェントを追加
@@ -745,8 +745,10 @@ int route_text(const char* text, char* response) {
     for (int i = 0; i < agent_count; i++) {
         float score = calculate_score(i, tokens, token_count);
         
-        printf("エージェント '%s' のスコア: %.4f (しきい値: %.4f)\n", 
-               agents[i].name, score, agents[i].threshold);
+        if (debug_mode) {
+            printf("エージェント '%s' のスコア: %.4f (しきい値: %.4f)\n", 
+                   agents[i].name, score, agents[i].threshold);
+        }
         
         if (score >= agents[i].threshold && score > max_score) {
             max_score = score;
@@ -759,8 +761,10 @@ int route_text(const char* text, char* response) {
         best_agent = agent_count - 1;  // フォールバックエージェント
     }
     
-    printf("選択されたエージェント: %s (スコア: %.4f)\n", 
-           agents[best_agent].name, max_score);
+    if (debug_mode) {
+        printf("選択されたエージェント: %s (スコア: %.4f)\n", 
+               agents[best_agent].name, max_score);
+    }
     
     // 最適なトピックを見つける
     int best_topic = find_best_topic(tokens, token_count);
@@ -890,7 +894,9 @@ int find_best_topic(const Token* tokens, int token_count) {
     for (int i = 0; i < topic_count; i++) {
         float score = calculate_topic_score(i, tokens, token_count);
         
-        printf("トピック '%s' のスコア: %.4f\n", topics[i].name, score);
+        if (debug_mode) {
+            printf("トピック '%s' のスコア: %.4f\n", topics[i].name, score);
+        }
         
         if (score > max_score) {
             max_score = score;
@@ -898,11 +904,13 @@ int find_best_topic(const Token* tokens, int token_count) {
         }
     }
     
-    if (best_topic != -1) {
-        printf("選択されたトピック: %s (スコア: %.4f)\n", 
-               topics[best_topic].name, max_score);
-    } else {
-        printf("適切なトピックが見つかりませんでした\n");
+    if (debug_mode) {
+        if (best_topic != -1) {
+            printf("選択されたトピック: %s (スコア: %.4f)\n", 
+                   topics[best_topic].name, max_score);
+        } else {
+            printf("適切なトピックが見つかりませんでした\n");
+        }
     }
     
     return best_topic;
@@ -942,12 +950,12 @@ char handle_greeting(const char* text, char* response, Topic* topics, int topic_
 // 質問エージェントのハンドラ
 char handle_question(const char* text, char* response, Topic* topics, int topic_id) {
     // 推論ルールを適用して応答を生成
-    printf("推論ルールを適用します...\n");
+    
     if (apply_inference_rules(text, response)) {
-        printf("推論ルールが適用されました: %s\n", response);
+        
         return 1;  // 推論ルールが適用された
     }
-    printf("適用可能な推論ルールが見つかりませんでした\n");
+    
     
     // トピックが見つかった場合は、そのトピックの知識から回答を生成
     if (topic_id >= 0 && topic_id < topic_count) {
@@ -959,16 +967,7 @@ char handle_question(const char* text, char* response, Topic* topics, int topic_
         }
     }
     
-    // 外部LLMを使用する場合
-    if (USE_EXTERNAL_LLM) {
-        printf("外部LLMに問い合わせます...\n");
-        char llm_response[MAX_RESPONSE_LEN];
-        if (query_external_llm(text, llm_response, MAX_RESPONSE_LEN, api_key)) {
-            strcpy(response, llm_response);
-            return 1;
-        }
-        printf("外部LLMからの応答取得に失敗しました\n");
-    }
+    // 外部LLMは使用しない
     
     // 外部LLMが使用できない場合や失敗した場合は、質問の種類に応じた一般的な回答
     if (strstr(text, "何") != NULL || strstr(text, "なに") != NULL) {
@@ -1096,12 +1095,12 @@ char handle_emotion(const char* text, char* response, Topic* topics, int topic_i
 // フォールバックエージェントのハンドラ
 char handle_fallback(const char* text, char* response, Topic* topics, int topic_id) {
     // 推論ルールを適用して応答を生成
-    printf("推論ルールを適用します...\n");
+    
     if (apply_inference_rules(text, response)) {
-        printf("推論ルールが適用されました: %s\n", response);
+        
         return 1;  // 推論ルールが適用された
     }
-    printf("適用可能な推論ルールが見つかりませんでした\n");
+    
     
     // トピックが見つかった場合は、そのトピックの知識から回答を生成
     if (topic_id >= 0 && topic_id < topic_count) {
@@ -1113,16 +1112,7 @@ char handle_fallback(const char* text, char* response, Topic* topics, int topic_
         }
     }
     
-    // 外部LLMを使用する場合
-    if (USE_EXTERNAL_LLM) {
-        printf("外部LLMに問い合わせます...\n");
-        char llm_response[MAX_RESPONSE_LEN];
-        if (query_external_llm(text, llm_response, MAX_RESPONSE_LEN, api_key)) {
-            strcpy(response, llm_response);
-            return 1;
-        }
-        printf("外部LLMからの応答取得に失敗しました\n");
-    }
+    // 外部LLMは使用しない
     
     // ランダムなフォールバック応答を選択
     int random = rand() % 5;
@@ -1241,7 +1231,7 @@ void init_topic_relations() {
     // サバイバルトピックの関連性
     add_topic_relation("survival", "health", 0.6f);
     
-    printf("%d個のトピック関連性を初期化しました\n", relation_count);
+    // デバッグ情報を非表示
 }
 
 // 推論ルールを初期化
@@ -1281,6 +1271,11 @@ void init_inference_rules() {
     add_inference_rule("量子 AND 利点", "量子計算の主な利点は、特定の問題（因数分解や検索など）を従来のコンピュータより指数関数的に高速に解けることです。これは量子重ね合わせと量子もつれの性質を活用しています。", 0.95f);
     add_inference_rule("量子コンピュータ AND 利点", "量子コンピュータの利点は、暗号解読、データベース検索、物質シミュレーションなどの特定の問題を従来のコンピュータより圧倒的に高速に解けることです。", 0.95f);
     
+    // C言語プログラミング関連の推論ルール
+    add_inference_rule("C言語 AND 電卓", "#include <stdio.h>\n\nint main() {\n    char operator;\n    double num1, num2, result;\n    \n    printf(\"簡易電卓プログラム\\n\");\n    printf(\"使用可能な演算子: +, -, *, /\\n\");\n    \n    printf(\"計算式を入力してください (例: 5 + 3): \");\n    scanf(\"%lf %c %lf\", &num1, &operator, &num2);\n    \n    switch(operator) {\n        case '+':\n            result = num1 + num2;\n            break;\n        case '-':\n            result = num1 - num2;\n            break;\n        case '*':\n            result = num1 * num2;\n            break;\n        case '/':\n            if(num2 != 0)\n                result = num1 / num2;\n            else {\n                printf(\"エラー: ゼロで除算できません\\n\");\n                return 1;\n            }\n            break;\n        default:\n            printf(\"エラー: 無効な演算子です\\n\");\n            return 1;\n    }\n    \n    printf(\"%.2lf %c %.2lf = %.2lf\\n\", num1, operator, num2, result);\n    return 0;\n}", 0.95f);
+    add_inference_rule("C言語 AND 電卓プログラム", "#include <stdio.h>\n\nint main() {\n    char operator;\n    double num1, num2, result;\n    \n    printf(\"簡易電卓プログラム\\n\");\n    printf(\"使用可能な演算子: +, -, *, /\\n\");\n    \n    printf(\"計算式を入力してください (例: 5 + 3): \");\n    scanf(\"%lf %c %lf\", &num1, &operator, &num2);\n    \n    switch(operator) {\n        case '+':\n            result = num1 + num2;\n            break;\n        case '-':\n            result = num1 - num2;\n            break;\n        case '*':\n            result = num1 * num2;\n            break;\n        case '/':\n            if(num2 != 0)\n                result = num1 / num2;\n            else {\n                printf(\"エラー: ゼロで除算できません\\n\");\n                return 1;\n            }\n            break;\n        default:\n            printf(\"エラー: 無効な演算子です\\n\");\n            return 1;\n    }\n    \n    printf(\"%.2lf %c %.2lf = %.2lf\\n\", num1, operator, num2, result);\n    return 0;\n}", 0.95f);
+    add_inference_rule("C言語 AND Todoリスト", "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n#define MAX_TASKS 100\n#define MAX_LENGTH 100\n\n// タスク構造体\ntypedef struct {\n    char description[MAX_LENGTH];\n    int completed;\n} Task;\n\n// グローバル変数\nTask tasks[MAX_TASKS];\nint taskCount = 0;\n\n// 関数プロトタイプ\nvoid addTask(const char* description);\nvoid viewTasks();\nvoid markTaskCompleted(int taskIndex);\nvoid deleteTask(int taskIndex);\nvoid saveTasksToFile(const char* filename);\nvoid loadTasksFromFile(const char* filename);\n\nint main() {\n    int choice, taskIndex;\n    char description[MAX_LENGTH];\n    char filename[] = \"tasks.txt\";\n    \n    // ファイルからタスクを読み込む\n    loadTasksFromFile(filename);\n    \n    while(1) {\n        printf(\"\\n===== Todoリスト =====\\n\");\n        printf(\"1. タスクを追加\\n\");\n        printf(\"2. タスク一覧を表示\\n\");\n        printf(\"3. タスクを完了としてマーク\\n\");\n        printf(\"4. タスクを削除\\n\");\n        printf(\"5. 終了\\n\");\n        printf(\"選択してください: \");\n        scanf(\"%d\", &choice);\n        getchar(); // 改行文字を消費\n        \n        switch(choice) {\n            case 1:\n                printf(\"新しいタスクを入力: \");\n                fgets(description, MAX_LENGTH, stdin);\n                description[strcspn(description, \"\\n\")] = 0; // 改行を削除\n                addTask(description);\n                break;\n            case 2:\n                viewTasks();\n                break;\n            case 3:\n                printf(\"完了としてマークするタスク番号: \");\n                scanf(\"%d\", &taskIndex);\n                markTaskCompleted(taskIndex - 1); // 0-indexedに変換\n                break;\n            case 4:\n                printf(\"削除するタスク番号: \");\n                scanf(\"%d\", &taskIndex);\n                deleteTask(taskIndex - 1); // 0-indexedに変換\n                break;\n            case 5:\n                saveTasksToFile(filename);\n                printf(\"タスクを保存して終了します。\\n\");\n                return 0;\n            default:\n                printf(\"無効な選択です。もう一度お試しください。\\n\");\n        }\n        \n        // タスクをファイルに自動保存\n        saveTasksToFile(filename);\n    }\n    \n    return 0;\n}", 0.95f);
+    
     // 料理に関する推論ルール
     add_inference_rule("料理 AND 基本", "料理の基本は、食材の特性を理解し、適切な調理法と調味料を選ぶことです。包丁の扱いや火加減の調整も重要なスキルです。", 0.9f);
     add_inference_rule("料理 AND コツ", "料理のコツは、新鮮な食材を選び、下ごしらえをしっかりと行い、味の調整を少しずつ行うことです。また、レシピに頼りすぎず、自分の感覚も大切にしましょう。", 0.9f);
@@ -1316,7 +1311,7 @@ void init_inference_rules() {
     add_inference_rule("* AND 方法", "効果的な方法を見つけるには、専門家のアドバイスを参考にし、自分に合ったやり方を見つけることが重要です。", 0.7f);
     add_inference_rule("* AND コツ", "上達するコツは、定期的な練習と継続的な学習です。", 0.7f);
     
-    printf("%d個の推論ルールを初期化しました\n", rule_count);
+    // デバッグ情報を非表示
 }
 
 // トピック関連性を追加
@@ -1399,8 +1394,10 @@ bool apply_inference_rules(const char* input, char* response) {
     bool rule_applied = false;
     float max_confidence = 0.0f;
     
-    printf("入力テキスト: '%s'\n", input);
-    printf("推論ルール数: %d\n", rule_count);
+    if (debug_mode) {
+        printf("入力テキスト: '%s'\n", input);
+        printf("推論ルール数: %d\n", rule_count);
+    }
     
     // 各ルールをチェック
     for (int i = 0; i < rule_count; i++) {
@@ -1408,9 +1405,11 @@ bool apply_inference_rules(const char* input, char* response) {
         strncpy(condition, inference_rules[i].condition, MAX_RULE_TEXT - 1);
         condition[MAX_RULE_TEXT - 1] = '\0';
         
-        printf("ルール %d: 条件='%s', 結論='%s', 確信度=%.2f\n", 
-               i, inference_rules[i].condition, 
-               inference_rules[i].conclusion, inference_rules[i].confidence);
+        if (debug_mode) {
+            printf("ルール %d: 条件='%s', 結論='%s', 確信度=%.2f\n", 
+                   i, inference_rules[i].condition, 
+                   inference_rules[i].conclusion, inference_rules[i].confidence);
+        }
         
         char condition_copy[MAX_RULE_TEXT];
         strncpy(condition_copy, condition, MAX_RULE_TEXT - 1);
@@ -1423,18 +1422,24 @@ bool apply_inference_rules(const char* input, char* response) {
         while (token != NULL && match) {
             // ワイルドカードの場合は常にマッチ
             if (strcmp(token, "*") == 0) {
-                printf("  ワイルドカードマッチ: '*'\n");
+                if (debug_mode) {
+                    printf("  ワイルドカードマッチ: '*'\n");
+                }
                 token = strtok(NULL, " AND ");
                 continue;
             }
             
             // 入力テキストに条件が含まれているかチェック
             if (strstr(input, token) == NULL) {
-                printf("  不一致: '%s' が入力テキストに含まれていません\n", token);
+                if (debug_mode) {
+                    printf("  不一致: '%s' が入力テキストに含まれていません\n", token);
+                }
                 match = false;
                 break;
             } else {
-                printf("  一致: '%s' が入力テキストに含まれています\n", token);
+                if (debug_mode) {
+                    printf("  一致: '%s' が入力テキストに含まれています\n", token);
+                }
             }
             
             token = strtok(NULL, " AND ");
@@ -1446,17 +1451,24 @@ bool apply_inference_rules(const char* input, char* response) {
             response[MAX_RESPONSE_LEN - 1] = '\0';
             max_confidence = inference_rules[i].confidence;
             rule_applied = true;
-            printf("  ルール適用: 確信度=%.2f, 結論='%s'\n", 
-                   inference_rules[i].confidence, inference_rules[i].conclusion);
+            if (debug_mode) {
+                printf("  ルール適用: 確信度=%.2f, 結論='%s'\n", 
+                       inference_rules[i].confidence, inference_rules[i].conclusion);
+            }
         } else if (match) {
-            printf("  ルールはマッチしましたが、より高い確信度のルールが既に適用されています\n");
+            if (debug_mode) {
+                printf("  ルールはマッチしましたが、より高い確信度のルールが既に適用されています\n");
+            }
         }
     }
     
-    if (rule_applied) {
-        printf("最終的に適用されたルールの確信度: %.2f\n", max_confidence);
-    } else {
-        printf("適用可能なルールが見つかりませんでした\n");
+    if (debug_mode) {
+        if (rule_applied) {
+            printf("最終的に適用されたルールの確信度: %.2f\n", max_confidence);
+            printf("推論ルールが適用されました: %s\n", response);
+        } else {
+            printf("適用可能な推論ルールが見つかりませんでした\n");
+        }
     }
     
     return rule_applied;
@@ -1533,60 +1545,29 @@ int main(int argc, char* argv[]) {
     init_inference_rules();
     
     // コマンドライン引数の解析
-    int i;
-    for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--api-key") == 0) {
-            if (i + 1 < argc) {
-                strncpy(api_key, argv[i + 1], MAX_API_KEY_LEN - 1);
-                api_key[MAX_API_KEY_LEN - 1] = '\0';
-                printf("APIキーが設定されました\n");
-                i++;  // APIキーの値をスキップ
-            } else {
-                printf("--api-key オプションには値が必要です\n");
-                return 1;
-            }
-        } else {
-            // 最初の非オプション引数を見つけたらループを抜ける
-            break;
-        }
-    }
+    int i = 1;  // 最初の引数から開始
     
-    // APIキーが設定されていない場合は環境変数から取得
-    if (strlen(api_key) == 0) {
-        char* env_api_key = getenv("OPENAI_API_KEY");
-        if (env_api_key != NULL) {
-            strncpy(api_key, env_api_key, MAX_API_KEY_LEN - 1);
-            api_key[MAX_API_KEY_LEN - 1] = '\0';
-            printf("環境変数からAPIキーが設定されました\n");
-        }
-    }
+    // 外部LLMは使用しない
     
     // コマンドライン引数のチェック
+    if (i < argc && strcmp(argv[i], "-d") == 0) {
+        debug_mode = true;
+        printf("デバッグモードが有効になりました\n");
+        i++;
+    }
+    
     if (i >= argc) {
         printf("使用法:\n");
-        printf("  %s [--api-key <APIキー>] <入力テキスト>\n", argv[0]);
-        printf("  %s [--api-key <APIキー>] -f <入力ファイル>\n", argv[0]);
-        printf("  %s [--api-key <APIキー>] -i (対話モード)\n", argv[0]);
+        printf("  %s [-d] <入力テキスト>\n", argv[0]);
+        printf("  %s [-d] -f <入力ファイル>\n", argv[0]);
+        printf("  %s [-d] -i (対話モード)\n", argv[0]);
+        printf("  オプション:\n");
+        printf("    -d: デバッグモードを有効化\n");
         
-        // APIキーが設定されていない場合は入力を促す
-        if (strlen(api_key) == 0) {
-            printf("\nOpenAI APIキーを入力してください（入力しない場合はシミュレーションモードで動作します）: ");
-            if (fgets(api_key, MAX_API_KEY_LEN, stdin) != NULL) {
-                // 改行文字を削除
-                size_t len = strlen(api_key);
-                if (len > 0 && api_key[len - 1] == '\n') {
-                    api_key[len - 1] = '\0';
-                }
-                
-                if (strlen(api_key) > 0) {
-                    printf("APIキーが設定されました\n");
-                }
-            }
-        }
+        // 外部LLMは使用しない
         
         // 対話モードを開始
         printf("対話モードを開始します。終了するには 'exit' と入力してください。\n");
-        printf("APIキー関連コマンド: /api-help で確認できます。\n");
         char text_buffer[MAX_TEXT_LEN];
         
         while (1) {
@@ -1607,39 +1588,12 @@ int main(int argc, char* argv[]) {
                 break;
             }
             
-            // APIキー設定コマンドをチェック
-            if (strncmp(text_buffer, "/api-key ", 9) == 0) {
-                strncpy(api_key, text_buffer + 9, MAX_API_KEY_LEN - 1);
-                api_key[MAX_API_KEY_LEN - 1] = '\0';
-                printf("APIキーが設定されました\n");
-                continue;
-            }
-            
-            // APIキー状態確認コマンド
-            if (strcmp(text_buffer, "/api-status") == 0) {
-                if (strlen(api_key) > 0) {
-                    printf("APIキーが設定されています\n");
-                } else {
-                    printf("APIキーが設定されていません（シミュレーションモードで動作します）\n");
-                }
-                continue;
-            }
-            
-            // APIキーヘルプコマンド
-            if (strcmp(text_buffer, "/api-help") == 0) {
-                printf("APIキー関連コマンド:\n");
-                printf("  /api-key <APIキー> - APIキーを設定します\n");
-                printf("  /api-status - APIキーの設定状態を確認します\n");
-                printf("  /api-help - このヘルプを表示します\n");
-                continue;
-            }
-            
             // テキストをルーティング
             char response[MAX_RESPONSE_LEN];
             route_text(text_buffer, response);
             
             // 応答を表示
-            printf("応答: %s\n", response);
+            printf("%s\n", response);
         }
         
         return 0;
@@ -1672,11 +1626,11 @@ int main(int argc, char* argv[]) {
         route_text(text_buffer, response);
         
         // 応答を表示
-        printf("応答: %s\n", response);
+        printf("%s\n", response);
     } else if (strcmp(argv[i], "-i") == 0) {
         // 対話モード
         printf("対話モードを開始します。終了するには 'exit' と入力してください。\n");
-        printf("APIキー関連コマンド: /api-help で確認できます。\n");
+        // APIキー関連のコマンドは削除
         
         while (1) {
             // 入力を受け取る
@@ -1696,39 +1650,14 @@ int main(int argc, char* argv[]) {
                 break;
             }
             
-            // APIキー設定コマンドをチェック
-            if (strncmp(text_buffer, "/api-key ", 9) == 0) {
-                strncpy(api_key, text_buffer + 9, MAX_API_KEY_LEN - 1);
-                api_key[MAX_API_KEY_LEN - 1] = '\0';
-                printf("APIキーが設定されました\n");
-                continue;
-            }
-            
-            // APIキー状態確認コマンド
-            if (strcmp(text_buffer, "/api-status") == 0) {
-                if (strlen(api_key) > 0) {
-                    printf("APIキーが設定されています\n");
-                } else {
-                    printf("APIキーが設定されていません（シミュレーションモードで動作します）\n");
-                }
-                continue;
-            }
-            
-            // APIキーヘルプコマンド
-            if (strcmp(text_buffer, "/api-help") == 0) {
-                printf("APIキー関連コマンド:\n");
-                printf("  /api-key <APIキー> - APIキーを設定します\n");
-                printf("  /api-status - APIキーの設定状態を確認します\n");
-                printf("  /api-help - このヘルプを表示します\n");
-                continue;
-            }
+            // APIキー関連のコマンドは削除
             
             // テキストをルーティング
             char response[MAX_RESPONSE_LEN];
             route_text(text_buffer, response);
             
             // 応答を表示
-            printf("応答: %s\n", response);
+            printf("%s\n", response);
         }
     } else {
         // 単一テキストモード
@@ -1747,7 +1676,7 @@ int main(int argc, char* argv[]) {
         route_text(text_buffer, response);
         
         // 応答を表示
-        printf("応答: %s\n", response);
+        printf("%s\n", response);
     }
     
     return 0;
