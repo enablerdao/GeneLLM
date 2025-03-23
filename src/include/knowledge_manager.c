@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <math.h>
+#include "../vector_search/vector_search.h"
 
 #define KB_INITIAL_CAPACITY 50
 #define MAX_LINE_LENGTH 4096
@@ -26,6 +27,9 @@ KnowledgeBase* knowledge_base_init(const char* base_dir) {
     kb->capacity = KB_INITIAL_CAPACITY;
     strncpy(kb->base_dir, base_dir, sizeof(kb->base_dir) - 1);
     kb->base_dir[sizeof(kb->base_dir) - 1] = '\0';
+    
+    // ベクトルデータベースを初期化
+    init_vector_db(&kb->vector_db);
     
     // ベースディレクトリが存在しない場合は作成
     struct stat st = {0};
@@ -75,6 +79,14 @@ bool knowledge_base_add_document(KnowledgeBase* kb, const char* title, const cha
             
             kb->documents[i].updated_at = time(NULL);
             
+            // ドキュメントをベクトル化してベクトルデータベースに追加
+            float* vector = knowledge_document_vectorize(&kb->documents[i]);
+            if (vector) {
+                // 既存のベクトルを更新
+                add_vector(&kb->vector_db, vector, i);
+                free(vector);
+            }
+            
             // ドキュメントをファイルに保存
             knowledge_base_save_document(kb, &kb->documents[i]);
             
@@ -113,6 +125,13 @@ bool knowledge_base_add_document(KnowledgeBase* kb, const char* title, const cha
     
     kb->documents[kb->count].created_at = time(NULL);
     kb->documents[kb->count].updated_at = kb->documents[kb->count].created_at;
+    
+    // ドキュメントをベクトル化してベクトルデータベースに追加
+    float* vector = knowledge_document_vectorize(&kb->documents[kb->count]);
+    if (vector) {
+        add_vector(&kb->vector_db, vector, kb->count);
+        free(vector);
+    }
     
     // ドキュメントをファイルに保存
     knowledge_base_save_document(kb, &kb->documents[kb->count]);
@@ -336,6 +355,9 @@ bool knowledge_base_load(KnowledgeBase* kb) {
     struct dirent* entry;
     kb->count = 0;
     
+    // ベクトルデータベースをクリア
+    init_vector_db(&kb->vector_db);
+    
     while ((entry = readdir(dir)) != NULL) {
         // .mdファイルのみ処理
         size_t len = strlen(entry->d_name);
@@ -459,6 +481,14 @@ bool knowledge_base_load(KnowledgeBase* kb) {
         }
         
         fclose(file);
+        
+        // ドキュメントをベクトル化してベクトルデータベースに追加
+        float* vector = knowledge_document_vectorize(&kb->documents[kb->count]);
+        if (vector) {
+            add_vector(&kb->vector_db, vector, kb->count);
+            free(vector);
+        }
+        
         kb->count++;
     }
     
@@ -466,38 +496,46 @@ bool knowledge_base_load(KnowledgeBase* kb) {
     return true;
 }
 
-// 知識ドキュメントのベクトル化（簡易版）
+// 知識ドキュメントのベクトル化
 float* knowledge_document_vectorize(const KnowledgeDocument* doc) {
     if (!doc) {
         return NULL;
     }
     
-    // 簡易的なベクトル化（実際の実装ではもっと複雑になる）
-    float* vector = (float*)malloc(sizeof(float) * 256);
+    // ベクトルデータベースと同じ次元数を使用
+    float* vector = (float*)malloc(sizeof(float) * VECTOR_DIM);
     if (!vector) {
         return NULL;
     }
     
     // 初期化
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < VECTOR_DIM; i++) {
         vector[i] = 0.0f;
     }
     
-    // 文字の出現頻度をカウント
-    for (size_t i = 0; i < strlen(doc->content); i++) {
-        unsigned char c = (unsigned char)doc->content[i];
-        vector[c] += 1.0f;
+    // タイトルと内容を組み合わせてベクトル化
+    char combined[4352]; // title + content の最大長
+    snprintf(combined, sizeof(combined), "%s %s", doc->title, doc->content);
+    
+    // 単語の文字コードを使用して決定論的にベクトル値を生成
+    for (int i = 0; i < VECTOR_DIM; i++) {
+        float val = 0.0f;
+        for (size_t j = 0; j < strlen(combined); j++) {
+            val += (float)(combined[j] * (j+1) * (i+1)) / 10000.0f;
+        }
+        // -1.0から1.0の範囲に正規化
+        vector[i] = fmodf(val, 2.0f) - 1.0f;
     }
     
-    // 正規化
+    // 正規化（コサイン類似度用）
     float sum = 0.0f;
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < VECTOR_DIM; i++) {
         sum += vector[i] * vector[i];
     }
     
     if (sum > 0.0f) {
         float norm = sqrt(sum);
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < VECTOR_DIM; i++) {
             vector[i] /= norm;
         }
     }
@@ -522,7 +560,7 @@ float knowledge_document_similarity(const KnowledgeDocument* doc1, const Knowled
     
     // コサイン類似度を計算
     float dot_product = 0.0f;
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < VECTOR_DIM; i++) {
         dot_product += vec1[i] * vec2[i];
     }
     

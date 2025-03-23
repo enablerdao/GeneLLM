@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include "../vector_search/vector_search.h"
 
 // 知識ドキュメント構造体
 typedef struct {
@@ -24,6 +25,7 @@ typedef struct {
     int count;
     int capacity;
     char base_dir[256];
+    VectorDB vector_db;  // ベクトルデータベース
 } KnowledgeBase;
 
 // 知識ベースの初期化
@@ -47,6 +49,9 @@ KnowledgeDocument** knowledge_base_find_by_tag(KnowledgeBase* kb, const char* ta
 
 // 知識ドキュメントの検索（内容で）
 KnowledgeDocument** knowledge_base_find_by_content(KnowledgeBase* kb, const char* query, int* count);
+
+// 知識ドキュメントの検索（ベクトル類似度で）
+KnowledgeDocument** knowledge_base_find_by_vector(KnowledgeBase* kb, const char* query, int* count, int max_results);
 
 // 知識ドキュメントの保存（ファイルに）
 bool knowledge_base_save_document(KnowledgeBase* kb, const KnowledgeDocument* doc);
