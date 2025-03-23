@@ -11,7 +11,7 @@
 // 知識ドキュメント構造体
 typedef struct {
     char title[256];
-    char content[4096];
+    char content[16384]; // 16KBに拡大
     char category[64];
     char tags[10][32];
     int tag_count;

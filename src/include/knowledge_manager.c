@@ -514,7 +514,7 @@ float* knowledge_document_vectorize(const KnowledgeDocument* doc) {
     }
     
     // タイトルと内容を組み合わせてベクトル化
-    char combined[4352]; // title + content の最大長
+    char combined[16640]; // title + content の最大長 (16KB + 256B)
     snprintf(combined, sizeof(combined), "%s %s", doc->title, doc->content);
     
     // 単語の文字コードを使用して決定論的にベクトル値を生成
