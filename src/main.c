@@ -591,7 +591,14 @@ void init_topics() {
     add_topic_pattern(15, "ストリーミング", "名詞", ENTITY, 0.7f);
     add_topic_pattern(15, "コンサート", "名詞", ENTITY, 0.7f);
     
-    // 知識ファイルを読み込む
+    // 知識ファイルを読み込む（00から始まるシステムプロンプトなどを優先的に読み込む）
+    load_knowledge_from_file("00_system_prompt.txt", 0);
+    load_knowledge_from_file("01_ai_concepts.txt", 1);
+    load_knowledge_from_file("02_programming_concepts.txt", 7);
+    load_knowledge_from_file("03_nlp_concepts.txt", 4);
+    load_knowledge_from_file("04_quantum_computing.txt", 10);
+    
+    // 通常の知識ファイルも読み込む
     load_knowledge_from_file("happiness_corpus.txt", 0);
     load_knowledge_from_file("love_corpus.txt", 1);
     load_knowledge_from_file("health_corpus.txt", 2);
