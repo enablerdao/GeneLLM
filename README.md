@@ -42,14 +42,14 @@
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # MeCabとその辞書をインストール
-brew install mecab mecab-ipadic
+brew install mecab mecab-ipadic curl
 
 # リポジトリをクローン
-git clone https://github.com/yourusername/c-lightweight-ai.git
-cd c-lightweight-ai
+git clone https://github.com/enablerdao/GeneLLM.git
+cd GeneLLM
 
 # ビルド
-./build.sh
+gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
 ```
 
 ### Linuxでのセットアップ
@@ -57,24 +57,27 @@ cd c-lightweight-ai
 ```bash
 # Ubuntuの場合
 sudo apt-get update
-sudo apt-get install -y gcc make mecab libmecab-dev mecab-ipadic-utf8
+sudo apt-get install -y gcc make mecab libmecab-dev mecab-ipadic-utf8 libcurl4-openssl-dev
 
 # リポジトリをクローン
-git clone https://github.com/yourusername/c-lightweight-ai.git
-cd c-lightweight-ai
+git clone https://github.com/enablerdao/GeneLLM.git
+cd GeneLLM
 
 # ビルド
-./build.sh
+gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
 ```
 
 ### 🧪 動作確認
 
 ```bash
-# ルーターモデルを試す
-./main router "量子コンピュータの仕組みを教えてください"
+# ステータスを確認
+./main status
 
 # 対話モードを試す
-./main router -i
+./main -i
+
+# 単一のクエリを処理
+./main "量子コンピュータの仕組みを教えてください"
 ```
 
 ## 💡 実装機能
@@ -725,33 +728,30 @@ void displayContent() {
 
 ## 🛠️ ビルド方法
 
-### ビルドスクリプトを使用
+### メインプログラムのビルド
 
 ```bash
-# すべてのプログラムを一度にビルド
-./build.sh
+# メインプログラム（すべての機能を含む）
+gcc -Wall -Wextra -std=c99 -o bin/main src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
 ```
 
-### 個別にビルド
+### 個別モジュールのビルド
 
 ```bash
 # 構文解析器
-gcc -o simple_analyzer simple_analyzer.c -Wall -Wextra -std=c99
+gcc -o bin/simple_analyzer src/analyzers/simple_analyzer.c -Wall -Wextra -std=c99
 
 # DNA圧縮
-gcc -o dna_compressor dna_compressor.c -Wall -Wextra -std=c99
+gcc -o bin/dna_compressor src/compressors/dna_compressor.c -Wall -Wextra -std=c99
 
 # ベクトル検索
-gcc -o vector_search vector_search.c -Wall -Wextra -std=c99 -lm
+gcc -o bin/vector_search src/vector_search/vector_search.c -Wall -Wextra -std=c99 -lm
 
 # グラフ生成器
-gcc -o graph_generator graph_generator.c -Wall -Wextra -std=c99
+gcc -o bin/graph_generator src/generators/graph_generator.c -Wall -Wextra -std=c99
 
 # ルーターモデル
-gcc -o c_implementation/improved_router_model c_implementation/improved_router_model.c -lmecab
-
-# メインプログラム
-gcc -o main main.c -Wall -Wextra -std=c99
+gcc -o bin/router_model src/routers/router_model.c -lmecab
 ```
 
 ## 🔮 今後の展望
