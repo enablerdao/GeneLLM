@@ -35,7 +35,7 @@ bool debug_mode = false;
 #define MAX_TOPIC_NAME 32
 #define USE_EXTERNAL_LLM 0  // 外部LLMを使用するかどうかのフラグ（無効化）
 #define MAX_KNOWLEDGE_ENTRIES 100
-#define MAX_KNOWLEDGE_TEXT 1024
+#define MAX_KNOWLEDGE_TEXT 16384 // 16KBに拡大
 
 // 論理推論用の定義
 #define MAX_TOPICS_LOGIC 20
@@ -1783,7 +1783,8 @@ int main(int argc, char* argv[]) {
     // 学習データベースを初期化
     learning_db = learning_db_init("data/learning_db.txt");
     
-    // 知識ベースを初期化
+    // 知識ベースを初期化（初期化前に既存のデータを削除）
+    system("rm -rf data/knowledge_base/*");
     knowledge_base = knowledge_base_init("data/knowledge_base");
     
     // コマンドライン引数の解析

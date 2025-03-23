@@ -1,0 +1,150 @@
+{
+  "timestamp": "2025-03-23 16:10:52",
+  "total_questions": 10,
+  "debug_mode": true,
+  "questions": [
+    {
+      "question": "Pythonでウェブスクレイピングをする方法を教えてください",
+      "response": "import requests\nfrom bs4 import BeautifulSoup\n\ndef web_scraping_example():\n    # スクレイピングするウェブサイトのURL\n    url = \"https://example.com\"\n    \n    try:\n        # ウェブページを取得\n        response = requests.get(url)\n        \n        # ステータスコードをチェック\n        if response.status_code != 200:\n            print(f\"エラー: ステータスコード {response.status_code}\")\n            return\n        \n        # HTMLを解析\n        soup = BeautifulSoup(response.text, 'html.parser')\n        \n        # タイトルを取得\n        title = soup.title.string\n        print(f\"ページタイトル: {title}\")\n        \n        # すべての段落を取得\n        paragraphs = soup.find_all('p')\n        print(f\"\\n段落の数: {len(paragraphs)}\")\n        \n        # 最初の3つの段落のテキストを表示\n        for i, p in enumerate(paragraphs[:3], 1):\n            print(f\"\\n段落 {i}:\")\n            print(p.get_text().strip())\n        \n        # す�",
+      "actual_response": "# す�",
+      "execution_time": 0.001729726791381836,
+      "score": 1.0,
+      "expected_keywords": [
+        "requests",
+        "BeautifulSoup",
+        "スクレイピング",
+        "ウェブページ",
+        "HTML"
+      ]
+    },
+    {
+      "question": "Javaでファイル操作をする方法を教えてください",
+      "response": "import java.io.*;\nimport java.nio.file.*;\nimport java.util.Scanner;\n\npublic class FileOperationsExample {\n    \n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        \n        System.out.println(\"Javaファイル操作の例\");\n        System.out.println(\"=\".repeat(30));\n        \n        // ファイル読み込みの例\n        try {\n            System.out.print(\"読み込むファイル名を入力: \");\n            String fileName = scanner.nextLine();\n            \n            // ファイルが存在するか確認\n            Path path = Paths.get(fileName);\n            if (!Files.exists(path) || !Files.isRegularFile(path)) {\n                System.out.println(\"エラー: ファイルが存在しません。\");\n            } else {\n                System.out.println(\"\\nファイルの内容:\");\n                System.out.println(\"-\".repeat(20));\n                \n                // BufferedReaderを使用してファイルを読み込み\n                try (",
+      "actual_response": "try (",
+      "execution_time": 0.0014231204986572266,
+      "score": 0.8,
+      "expected_keywords": [
+        "java.io",
+        "File",
+        "BufferedReader",
+        "FileWriter",
+        "Path"
+      ]
+    },
+    {
+      "question": "C言語で電卓プログラムを作るには？",
+      "response": "#include <stdio.h>\n\nint main() {\n    char operator;\n    double num1, num2, result;\n    \n    printf(\"簡易電卓プログラム\\n\");\n    printf(\"使用可能な演算子: +, -, *, /\\n\");\n    \n    printf(\"計算式を入力してください (例: 5 + 3): \");\n    scanf(\"%lf %c %lf\", &num1, &operator, &num2);\n    \n    switch(operator) {\n        case '+':\n            result = num1 + num2;\n            break;\n        case '-':\n            result = num1 - num2;\n            break;\n        case '*':\n            result = num1 * num2;\n            break;\n        case '/':\n            if(num2 != 0)\n                result = num1 / num2;\n            else {\n                printf(\"エラー: ゼロで除算できません\\n\");\n                return 1;\n            }\n            break;\n        default:\n            printf(\"エラー: 無効な演算子です\\n\");\n            return 1;\n    }\n    \n    printf(\"%.2lf %c %.2lf = %.2lf\\n\", num1, operator, num2, result);\n    return 0;\n}",
+      "actual_response": "}",
+      "execution_time": 0.0019681453704833984,
+      "score": 1.0,
+      "expected_keywords": [
+        "stdio.h",
+        "main",
+        "scanf",
+        "printf",
+        "switch"
+      ]
+    },
+    {
+      "question": "JavaScriptでTodoリストアプリを作成する方法は？",
+      "response": "効果的な方法を見つけるには、専門家のアドバイスを参考にし、自分に合ったやり方を見つけることが重要です。",
+      "actual_response": "効果的な方法を見つけるには、専門家のアドバイスを参考にし、自分に合ったやり方を見つけることが重要です。",
+      "execution_time": 0.0012891292572021484,
+      "score": 0.0,
+      "expected_keywords": [
+        "function",
+        "addEventListener",
+        "localStorage",
+        "DOM",
+        "HTML"
+      ]
+    },
+    {
+      "question": "量子コンピュータの仕組みについて教えてください",
+      "response": "量子コンピュータは量子力学の原理を利用し、従来のビットではなく量子ビット（キュービット）を使用します。キュービットは重ね合わせ状態で0と1を同時に表現できます。",
+      "actual_response": "量子コンピュータは量子力学の原理を利用し、従来のビットではなく量子ビット（キュービット）を使用します。キュービットは重ね合わせ状態で0と1を同時に表現できます。",
+      "execution_time": 0.0014166831970214844,
+      "score": 0.8,
+      "expected_keywords": [
+        "量子ビット",
+        "キュービット",
+        "重ね合わせ",
+        "量子力学",
+        "計算"
+      ]
+    },
+    {
+      "question": "機械学習の基本的な概念を説明してください",
+      "response": "多様な学習方法の組み合わせが最も効果的です。",
+      "actual_response": "多様な学習方法の組み合わせが最も効果的です。",
+      "execution_time": 0.0013890266418457031,
+      "score": 0.2,
+      "expected_keywords": [
+        "学習",
+        "モデル",
+        "データ",
+        "アルゴリズム",
+        "予測"
+      ]
+    },
+    {
+      "question": "効率的な学習方法はありますか？",
+      "response": "効率的な学習のためには、集中できる環境と定期的な復習が重要です。",
+      "actual_response": "効率的な学習のためには、集中できる環境と定期的な復習が重要です。",
+      "execution_time": 0.0014257431030273438,
+      "score": 0.4,
+      "expected_keywords": [
+        "集中",
+        "復習",
+        "計画",
+        "実践",
+        "理解"
+      ]
+    },
+    {
+      "question": "健康的な食事について教えてください",
+      "response": "健康的な食事には、多くの野菜と果物を含めることが重要です。",
+      "actual_response": "健康的な食事には、多くの野菜と果物を含めることが重要です。",
+      "execution_time": 0.001218557357788086,
+      "score": 0.4,
+      "expected_keywords": [
+        "バランス",
+        "野菜",
+        "タンパク質",
+        "栄養",
+        "食事"
+      ]
+    },
+    {
+      "question": "投資の始め方を教えてください",
+      "response": "投資を始めるには、まず緊急資金を確保し、自分のリスク許容度を理解した上で、分散投資の原則に従って少額から始めることが賢明です。",
+      "actual_response": "投資を始めるには、まず緊急資金を確保し、自分のリスク許容度を理解した上で、分散投資の原則に従って少額から始めることが賢明です。",
+      "execution_time": 0.001280069351196289,
+      "score": 0.6,
+      "expected_keywords": [
+        "資金",
+        "リスク",
+        "分散",
+        "株式",
+        "計画"
+      ]
+    },
+    {
+      "question": "旅行の計画を立てるコツはありますか？",
+      "response": "効果的な旅行計画には、目的地の情報収集、予算設定、交通手段と宿泊先の予約、必要書類の確認が含まれます。余裕を持ったスケジュールを立てることも大切です。",
+      "actual_response": "効果的な旅行計画には、目的地の情報収集、予算設定、交通手段と宿泊先の予約、必要書類の確認が含まれます。余裕を持ったスケジュールを立てることも大切です。",
+      "execution_time": 0.0017809867858886719,
+      "score": 0.8,
+      "expected_keywords": [
+        "予約",
+        "スケジュール",
+        "予算",
+        "情報",
+        "準備"
+      ]
+    }
+  ],
+  "total_execution_time": 0.014921188354492188,
+  "average_execution_time": 0.0014921188354492187,
+  "average_score": 0.6
+}
