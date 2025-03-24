@@ -1,221 +1,126 @@
-# GeneLLM - C言語による超軽量AI実装
+# GeneLLM
 
-![GeneLLM Logo](assets/genellm_logo.png)
+C言語による超軽量AI実装
 
-GeneLLMは、C言語で実装された軽量な自然言語処理システムです。大規模な深層学習モデルとは異なり、形態素解析と独自のルールベースアプローチを組み合わせることで、最小限のリソースで動作する効率的なAIシステムを提供します。
+## 概要
 
-## 📋 目次
+GeneLLMは、C言語で実装された超軽量なAIシステムです。大規模言語モデル（LLM）の基本的な機能を、最小限のリソースで実現することを目指しています。
 
-- [インストール方法](#-インストール方法)
-- [使い方](#-使い方)
-- [プロジェクト概要](#-プロジェクト概要)
-- [システムアーキテクチャ](#-システムアーキテクチャ)
-- [ディレクトリ構造](#-ディレクトリ構造)
-- [ベンチマーク](#-ベンチマーク)
-- [ライセンス](#-ライセンス)
-- [貢献](#-貢献)
+## 特徴
 
-## 🚀 インストール方法
+- **超軽量**: 最小限のメモリと計算リソースで動作
+- **C言語実装**: 高速で効率的な処理
+- **ベクトル検索**: 効率的な知識検索機能
+- **日本語対応**: 日本語テキストの処理に対応
+- **拡張可能**: モジュール式の設計で機能拡張が容易
 
-### クイックスタート（推奨）
+## インストール
 
-最も簡単な方法は、クイックスタートスクリプトを使用することです：
+### 依存関係
 
-```bash
-curl -sSL https://raw.githubusercontent.com/enablerdao/GeneLLM/main/quick_start.sh | bash
-```
+- C コンパイラ (gcc/clang)
+- MeCab (日本語形態素解析)
+- libcurl (オプション: 外部APIとの連携用)
 
-このスクリプトは以下の処理を自動的に行います：
-1. 必要な依存関係のインストール（MeCab、libcurl）
-2. プロジェクトのビルド
-3. 最初のテスト実行
-
-### 手動インストール
-
-リポジトリをクローンして手動でインストールすることもできます：
+### Ubuntuでのインストール
 
 ```bash
+# 必要なパッケージのインストール
+sudo apt-get update
+sudo apt-get install -y build-essential libmecab-dev mecab mecab-ipadic-utf8 libcurl4-openssl-dev
+
 # リポジトリのクローン
 git clone https://github.com/enablerdao/GeneLLM.git
 cd GeneLLM
 
-# 依存関係のインストール（Ubuntu/Debian）
-sudo apt-get update
-sudo apt-get install -y libmecab-dev mecab mecab-ipadic-utf8 libcurl4-openssl-dev
-
 # ビルド
-gcc -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
+./build.sh
 ```
 
-### 依存関係
+### macOSでのインストール
 
-- **MeCab**: 日本語形態素解析エンジン
-- **libcurl**: ウェブからのデータ取得（オプション）
+```bash
+# Homebrewを使用して必要なパッケージをインストール
+brew install gcc mecab mecab-ipadic curl
 
-各OSでのインストール方法は[依存関係インストールガイド](docs/dependencies.md)を参照してください。
+# リポジトリのクローン
+git clone https://github.com/enablerdao/GeneLLM.git
+cd GeneLLM
 
-## 💬 使い方
+# ビルド
+./build.sh
+```
 
-GeneLLMは以下の3つのモードで実行できます：
+## 使用方法
 
-### 1. 単一質問モード
+### 基本的な使い方
 
+```bash
+./gllm "質問文"
+```
+
+例:
 ```bash
 ./gllm "C言語でHello Worldを表示するプログラムを教えてください"
 ```
 
-### 2. デバッグモード
+### オプション
 
-内部処理の詳細を表示するデバッグモードで実行：
+- `-h, --help`: ヘルプメッセージを表示
+- `-v, --version`: バージョン情報を表示
+- `-d, --debug`: デバッグモードで実行
+- `-i, --interactive`: 対話モードで実行
+
+### クイックスタート
+
+クイックスタートスクリプトを使用すると、依存関係のインストールからビルド、最初の質問までを自動的に行います。
 
 ```bash
-./gllm -d "自然言語処理とは何ですか？"
+./quick_start.sh
 ```
 
-### 3. 対話モード
+### 便利なスクリプト
 
-継続的な会話を行う対話モードで実行：
+- `./scripts/run_interactive.sh`: 対話モードで実行
+- `./scripts/run_debug.sh "質問文"`: デバッグモードで実行
+- `./scripts/run_tests.sh [basic|new|tools|build|all]`: テストを実行
 
-```bash
-./gllm -i
-```
+## ドキュメント
 
-対話モードでは、`exit`と入力することで終了できます。
+詳細なドキュメントは以下のファイルを参照してください：
 
-詳細な使用方法と高度なオプションについては[使用方法ガイド](docs/usage_guide.md)を参照してください。
+- [使用ガイド](docs/readme/README_USAGE.md): 詳細な使用方法
+- [ディレクトリ構造](docs/readme/README_DIRECTORY_STRUCTURE.md): プロジェクトの構成
+- [デバッグガイド](docs/DEBUG_GUIDE.md): デバッグ方法
+- [シンプル版の説明](docs/readme/README_simple.md): シンプル実装の概要
 
-## 📋 プロジェクト概要
+## 機能
 
-GeneLLMは以下の特徴を持つ軽量AIシステムです：
+### ベクトル検索
 
-- **C言語による実装**: 高速で効率的な処理を実現
-- **最小限の依存関係**: 外部ライブラリへの依存を最小限に抑えた設計
-- **形態素解析ベース**: MeCabを使用した日本語テキスト解析
-- **ベクトル検索**: 効率的な類似度計算による関連情報の検索
-- **知識ベース管理**: マークダウン形式の知識ファイルを活用
-- **学習機能**: 過去の質問と回答を記憶し再利用
-- **エージェントベースアーキテクチャ**: 専門化されたエージェントによる処理
+テキストをベクトル化し、類似度に基づいて検索を行います。
 
-GeneLLMは、大規模な計算リソースを必要とせずに基本的な自然言語処理タスクを実行できるように設計されています。教育目的や組み込みシステムでの利用に適しています。
+### 形態素解析
 
-## 🔍 システムアーキテクチャ
-
-GeneLLMは以下の主要コンポーネントから構成されています：
-
-### 1. メインプログラム (`src/main.c`)
-- プログラムのエントリーポイント
-- コマンドライン引数の解析
-- 対話モードと単一クエリモードの処理
-- [詳細な説明](docs/main_program.md)
-
-### 2. 知識管理システム (`src/include/knowledge_manager.c`)
-- 知識ベースの初期化と管理
-- ドキュメントの追加、検索、保存
-- ベクトル検索との連携
-- [詳細な説明](docs/knowledge_system.md)
-
-### 3. ベクトル検索エンジン (`src/vector_search/vector_search.c`)
-- 単語や文のベクトル表現
-- 類似度計算（コサイン類似度など）
-- 高速な検索アルゴリズム
-- [詳細な説明](docs/vector_search.md)
-
-### 4. 学習モジュール (`src/include/learning_module.c`)
-- 過去の質問と回答の保存
-- 類似質問の検索
-- [詳細な説明](docs/learning_module.md)
-
-### 5. ルーターモデル
-- 入力テキストの分析と適切なエージェントへのルーティング
-- エージェントベースのアーキテクチャ
-- [詳細な説明と改善案](docs/router_model.md)
-
-システムの全体的なフロー図と詳細な説明は[アーキテクチャ概要](docs/architecture_overview.md)を参照してください。
-
-## 📁 ディレクトリ構造
-
-```
-/
-├── bin/           - コンパイル済みバイナリ
-├── data/          - データファイル
-│   ├── models/             - モデルデータ
-│   ├── vector_db/          - ベクトルデータベース
-│   ├── word_vectors.dat    - 単語ベクトルデータ
-│   └── learning_db.txt     - 学習データベース
-├── knowledge/     - 知識関連ファイル
-│   ├── base/               - 知識ベース（カテゴリ別サブディレクトリを含む）
-│   │   └── system/         - システム関連の知識ファイル
-│   ├── docs/               - トピック別知識ファイル
-│   └── text/               - テキストコーパス
-│       └── wikipedia/      - Wikipediaデータ
-├── logs/          - ログファイル（質問と回答の履歴）
-└── src/           - ソースコード
-    ├── analyzers/          - テキスト解析モジュール
-    ├── compressors/        - データ圧縮モジュール
-    ├── generators/         - 文生成モジュール
-    ├── include/            - 共通ヘッダとユーティリティ
-    │   ├── knowledge_manager.c    - 知識ベース管理
-    │   ├── learning_module.c      - 学習モジュール
-    │   └── word_loader.c          - 単語読み込み
-    ├── routers/             - ルーティングモジュール
-    └── vector_search/       - ベクトル検索モジュール
-```
-
-各ディレクトリとファイルの詳細な説明は[ファイル構造ガイド](docs/file_structure.md)を参照してください。
+MeCabを使用して日本語テキストを形態素解析し、単語単位での処理を行います。
 
 ### 知識ベース
 
-システムは`knowledge/base`ディレクトリ内のマークダウンファイルから知識を取得します。各ファイルは以下の形式に従います：
+テキストファイルから知識を抽出し、ベクトルデータベースに格納します。
 
-```markdown
----
-category: カテゴリ名
-tags: タグ1, タグ2, タグ3
-created_at: 2023-03-23 12:00:00
-updated_at: 2023-03-23 12:00:00
----
+## 貢献
 
-# タイトル
+プロジェクトへの貢献を歓迎します。以下の方法で貢献できます：
 
-コンテンツ本文...
-```
+1. イシューの報告
+2. 機能リクエスト
+3. プルリクエスト
 
-現在、以下のカテゴリの知識ベースが実装されています：
-- AI: 人工知能に関する知識
-- Culture: 各国の文化と歴史
-- System: システム関連の知識
-
-知識ベースの拡張方法については[知識ベース拡張ガイド](docs/knowledge_base_guide.md)を参照してください。
-
-## 📊 ベンチマーク
-
-GeneLLMの性能を評価するためのベンチマークツールが用意されています：
-
-```bash
-# ベンチマークを実行
-./benchmark/run_benchmark.sh
-```
-
-ベンチマークでは以下の項目が測定されます：
-- 応答速度
-- メモリ使用量
-- 応答品質（正確性）
-- 知識検索の精度
-
-詳細な結果と分析は[ベンチマークレポート](benchmark/README.md)を参照してください。
-
-## 📝 ライセンス
+## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
 
-## 👥 貢献
+## 謝辞
 
-GeneLLMプロジェクトへの貢献を歓迎します！
-
-- バグ報告や機能リクエストは[Issue](https://github.com/enablerdao/GeneLLM/issues)にて受け付けています
-- コードの改善や新機能の追加は[Pull Request](https://github.com/enablerdao/GeneLLM/pulls)を通じて提案できます
-- 貢献方法の詳細は[貢献ガイド](CONTRIBUTING.md)を参照してください
-
----
-
-**GeneLLM** - 軽量で効率的なC言語AI実装 | [GitHub](https://github.com/enablerdao/GeneLLM)
+- MeCab開発チーム
+- 貢献者の皆様
