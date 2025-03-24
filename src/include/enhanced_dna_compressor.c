@@ -50,7 +50,7 @@ const char* get_enhanced_dna_code(EnhancedDNADictionary *dict, const char *word,
                 return NULL;
         }
         
-        snprintf(entry->code, MAX_DNA_CODE_LEN, "%c%02d", type_char, entry->id);
+        snprintf(entry->code, MAX_DNA_CODE_LEN, "%c%d", type_char, entry->id);
         dict->count++;
         
         return entry->code;

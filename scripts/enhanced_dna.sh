@@ -80,7 +80,7 @@ generate_enhanced_dna() {
         if [ -z "$subject_id" ]; then
             # 新しいエントリを追加
             local last_e_id=$(grep "^E" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            subject_id=$(printf "E%02d" $last_e_id)
+            subject_id=$(printf "E%d" $last_e_id)
             echo "$subject_id|$subject" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${subject_id}"
@@ -92,7 +92,7 @@ generate_enhanced_dna() {
         if [ -z "$verb_id" ]; then
             # 新しいエントリを追加
             local last_c_id=$(grep "^C" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            verb_id=$(printf "C%02d" $last_c_id)
+            verb_id=$(printf "C%d" $last_c_id)
             echo "$verb_id|$verb" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${verb_id}"
@@ -104,7 +104,7 @@ generate_enhanced_dna() {
         if [ -z "$object_id" ]; then
             # 新しいエントリを追加
             local last_r_id=$(grep "^R" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            object_id=$(printf "R%02d" $last_r_id)
+            object_id=$(printf "R%d" $last_r_id)
             echo "$object_id|$object" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${object_id}"
@@ -116,7 +116,7 @@ generate_enhanced_dna() {
         if [ -z "$attribute_id" ]; then
             # 新しいエントリを追加
             local last_a_id=$(grep "^A" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            attribute_id=$(printf "A%02d" $last_a_id)
+            attribute_id=$(printf "A%d" $last_a_id)
             echo "$attribute_id|$attribute" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${attribute_id}"
@@ -128,7 +128,7 @@ generate_enhanced_dna() {
         if [ -z "$time_id" ]; then
             # 新しいエントリを追加
             local last_t_id=$(grep "^T" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            time_id=$(printf "T%02d" $last_t_id)
+            time_id=$(printf "T%d" $last_t_id)
             echo "$time_id|$time" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${time_id}"
@@ -140,7 +140,7 @@ generate_enhanced_dna() {
         if [ -z "$location_id" ]; then
             # 新しいエントリを追加
             local last_l_id=$(grep "^L" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            location_id=$(printf "L%02d" $last_l_id)
+            location_id=$(printf "L%d" $last_l_id)
             echo "$location_id|$location" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${location_id}"
@@ -152,7 +152,7 @@ generate_enhanced_dna() {
         if [ -z "$manner_id" ]; then
             # 新しいエントリを追加
             local last_m_id=$(grep "^M" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            manner_id=$(printf "M%02d" $last_m_id)
+            manner_id=$(printf "M%d" $last_m_id)
             echo "$manner_id|$manner" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${manner_id}"
@@ -164,7 +164,7 @@ generate_enhanced_dna() {
         if [ -z "$quantity_id" ]; then
             # 新しいエントリを追加
             local last_q_id=$(grep "^Q" "$ENHANCED_DNA_DICT_FILE" | wc -l)
-            quantity_id=$(printf "Q%02d" $last_q_id)
+            quantity_id=$(printf "Q%d" $last_q_id)
             echo "$quantity_id|$quantity" >> "$ENHANCED_DNA_DICT_FILE"
         fi
         dna_code="${dna_code}${quantity_id}"
@@ -205,8 +205,18 @@ decompress_enhanced_dna() {
     local text=""
     local i=0
     while [ $i -lt ${#dna_code} ]; do
-        local code="${dna_code:$i:3}"
-        i=$((i + 3))
+        # 最初の文字を取得（タイプ）
+        local type="${dna_code:$i:1}"
+        i=$((i + 1))
+        
+        # 数字部分を取得（ID）
+        local id_start=$i
+        while [[ $i -lt ${#dna_code} && "${dna_code:$i:1}" =~ [0-9] ]]; do
+            i=$((i + 1))
+        done
+        
+        # コードを組み立て
+        local code="${type}${dna_code:$id_start:$i-$id_start}"
 
         # 辞書から単語を検索
         local word=$(grep "^$code|" "$ENHANCED_DNA_DICT_FILE" | cut -d'|' -f2)
@@ -304,14 +314,14 @@ show_help() {
   "DNAコード"               復元する拡張DNAコード（例: E00C01R02A00T01）
 
 拡張DNAコードの形式:
-  E00 - 主語(Entity)のID
-  C00 - 動詞(Concept)のID
-  R00 - 結果(Result)のID
-  A00 - 属性(Attribute)のID
-  T00 - 時間(Time)のID
-  L00 - 場所(Location)のID
-  M00 - 様態(Manner)のID
-  Q00 - 数量(Quantity)のID
+  E0〜E9999999999 - 主語(Entity)のID
+  C0〜C9999999999 - 動詞(Concept)のID
+  R0〜R9999999999 - 結果(Result)のID
+  A0〜A9999999999 - 属性(Attribute)のID
+  T0〜T9999999999 - 時間(Time)のID
+  L0〜L9999999999 - 場所(Location)のID
+  M0〜M9999999999 - 様態(Manner)のID
+  Q0〜Q9999999999 - 数量(Quantity)のID
 EOF
 }
 

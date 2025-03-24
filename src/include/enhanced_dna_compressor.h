@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define MAX_WORD_LEN 128
-#define MAX_DNA_CODE_LEN 16
+#define MAX_DNA_CODE_LEN 32
 #define MAX_DICT_ENTRIES 1000
 
 // 拡張DNAタイプの定義
