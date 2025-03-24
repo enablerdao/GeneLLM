@@ -34,7 +34,7 @@ git clone https://github.com/enablerdao/GeneLLM.git
 cd GeneLLM
 
 # ビルド
-./build.sh
+./scripts/build.sh
 ```
 
 ### macOSでのインストール
@@ -48,7 +48,7 @@ git clone https://github.com/enablerdao/GeneLLM.git
 cd GeneLLM
 
 # ビルド
-./build.sh
+./scripts/build.sh
 ```
 
 ## 使用方法
@@ -76,7 +76,7 @@ cd GeneLLM
 クイックスタートスクリプトを使用すると、依存関係のインストールからビルド、最初の質問までを自動的に行います。
 
 ```bash
-./quick_start.sh
+./scripts/quick_start.sh
 ```
 
 ### 便利なスクリプト
