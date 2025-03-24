@@ -18,6 +18,9 @@ show_help() {
   dna-compress "テキスト"     テキストをDNAコードに圧縮
   dna-decompress "DNAコード"  DNAコードからテキストを復元
   verb-info "動詞"            動詞の活用形と種類を表示
+  similar "単語" [limit]      類似単語を検索
+  compare "単語1" "単語2"     2つの単語の類似度を計算
+  dna-dict [サブコマンド]     DNA辞書を管理
   help                       このヘルプを表示
 
 引数:
@@ -26,17 +29,21 @@ show_help() {
   "テキスト"                 トークナイズまたは圧縮するテキスト
   "DNAコード"                復元するDNAコード（例: E00C01R02）
   "動詞"                     活用情報を表示する動詞
+  "単語"                     類似単語を検索する単語
+  サブコマンド               DNA辞書管理のサブコマンド (show, add, delete, export, import, search)
 
 例:
   ./genellm_tools.sh vectors              # ベクトルデータを表示（デフォルト10件）
   ./genellm_tools.sh vectors 20           # ベクトルデータを20件表示
-  ./genellm_tools.sh vectors 5 100        # ベクトルデータを位置100から5件表示
   ./genellm_tools.sh words                # 単語リストを表示（デフォルト10件）
-  ./genellm_tools.sh words 20             # 単語リストを20件表示
   ./genellm_tools.sh tokenize "こんにちは" # テキストをトークナイズして表示
   ./genellm_tools.sh dna-compress "猫が魚を食べる"  # テキストをDNAコードに圧縮
   ./genellm_tools.sh dna-decompress "E00C00R00"    # DNAコードからテキストを復元
   ./genellm_tools.sh verb-info "食べる"   # 動詞の活用形と種類を表示
+  ./genellm_tools.sh similar "猫" 5       # 「猫」に類似した単語を5件表示
+  ./genellm_tools.sh compare "猫" "犬"    # 「猫」と「犬」の類似度を計算
+  ./genellm_tools.sh dna-dict show        # DNA辞書の内容を表示
+  ./genellm_tools.sh dna-dict add E 人間  # DNA辞書に主語として「人間」を追加
 EOF
 }
 
@@ -68,6 +75,15 @@ case "$COMMAND" in
         ;;
     verb-info)
         "$SCRIPTS_DIR/dna.sh" verb-info "$@"
+        ;;
+    similar)
+        "$SCRIPTS_DIR/similar.sh" find "$@"
+        ;;
+    compare)
+        "$SCRIPTS_DIR/similar.sh" compare "$@"
+        ;;
+    dna-dict)
+        "$SCRIPTS_DIR/dict_manager.sh" "$@"
         ;;
     help|--help|-h)
         show_help
