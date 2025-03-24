@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# GeneLLM DNA検索ラッパースクリプト
+# 使用方法: ./genellm_dna "質問" [結果数]
+
+WORKSPACE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
+DNA_SEARCH_BIN="$WORKSPACE_DIR/bin/dna_search"
+
+# 引数をチェック
+if [ $# -lt 1 ]; then
+    echo "使用方法: $0 \"質問\" [結果数]"
+    exit 1
+fi
+
+QUESTION="$1"
+MAX_RESULTS="${2:-20}"
+
+# DNA検索を実行
+"$DNA_SEARCH_BIN" "$QUESTION" "$MAX_RESULTS"
