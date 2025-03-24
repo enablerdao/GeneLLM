@@ -36,7 +36,27 @@ fi
 echo "トークナイズされたファイルから単語を抽出しています..."
 
 # すべてのトークナイズされたファイルから単語を抽出
-find "$TOKENIZED_DIR" -type f -exec cat {} \; | grep -v "^--" | grep -v "^表層形" | grep -v "^テキスト" | grep -v "^-" | cut -f1 | sort | uniq > "$TEMP_DIR/unique_words.txt"
+# まず各ファイルからトークン化された単語を抽出
+echo "トークナイズされたファイルから単語を抽出しています..."
+for file in $(find "$TOKENIZED_DIR" -type f); do
+    # ファイル名を表示
+    echo "  ファイル処理中: $(basename "$file")"
+    
+    # ファイルの内容を確認
+    if grep -q "^テキスト「" "$file"; then
+        # トークナイズ結果からMeCabの出力部分だけを抽出
+        sed -n '/^表層形/,/^$/p' "$file" | grep -v "^表層形" | grep -v "^--" | grep -v "^$" | cut -f1 >> "$TEMP_DIR/all_words.txt"
+    fi
+done
+
+# 重複を削除して一意な単語リストを作成
+if [ -f "$TEMP_DIR/all_words.txt" ]; then
+    sort "$TEMP_DIR/all_words.txt" | uniq | grep -v "^$" | grep -v "^-$" > "$TEMP_DIR/unique_words.txt"
+    rm -f "$TEMP_DIR/all_words.txt"
+else
+    echo "警告: 単語が抽出できませんでした"
+    touch "$TEMP_DIR/unique_words.txt"
+fi
 
 # 単語数を取得
 WORD_COUNT=$(wc -l < "$TEMP_DIR/unique_words.txt")
@@ -60,13 +80,31 @@ echo "単語ベクトルを生成しています..."
 python3 -c "
 import numpy as np
 import os
+import sys
 
 # 単語リストの読み込み
 word_list_file = '$WORD_LIST_FILE'
 vectors_file = '$VECTORS_FILE'
+temp_dir = '$TEMP_DIR'
 
-with open(word_list_file, 'r') as f:
-    words = [line.strip() for line in f if line.strip()]
+# 単語リストが存在するか確認
+if not os.path.exists(word_list_file):
+    # 一時ディレクトリから単語リストをコピー
+    if os.path.exists(os.path.join(temp_dir, 'unique_words.txt')):
+        os.makedirs(os.path.dirname(word_list_file), exist_ok=True)
+        with open(os.path.join(temp_dir, 'unique_words.txt'), 'r') as src, open(word_list_file, 'w') as dst:
+            dst.write(src.read())
+    else:
+        print('エラー: 単語リストが見つかりません')
+        sys.exit(1)
+
+# 単語リストを読み込む
+try:
+    with open(word_list_file, 'r') as f:
+        words = [line.strip() for line in f if line.strip()]
+except Exception as e:
+    print(f'単語リストの読み込みに失敗しました: {e}')
+    sys.exit(1)
 
 # 単語数を取得
 word_count = len(words)
@@ -84,8 +122,12 @@ if os.path.exists(vectors_file):
                 parts = line.strip().split(' ', 1)
                 if len(parts) == 2:
                     word, vector_str = parts
-                    vector = np.array([float(x) for x in vector_str.split()])
-                    existing_vectors[word] = vector
+                    try:
+                        vector = np.array([float(x) for x in vector_str.split()])
+                        existing_vectors[word] = vector
+                    except ValueError:
+                        # 数値に変換できない場合はスキップ
+                        continue
         print(f'既存のベクトル数: {len(existing_vectors)}')
     except Exception as e:
         print(f'既存のベクトルファイルの読み込みに失敗しました: {e}')
@@ -93,28 +135,40 @@ if os.path.exists(vectors_file):
 
 # 新しいベクトルを生成
 new_vectors = {}
-for i, word in enumerate(words):
-    if i % 1000 == 0:
-        print(f'進捗: {i}/{word_count} 単語処理済み')
+batch_size = 1000  # バッチサイズ
+for i in range(0, word_count, batch_size):
+    batch_end = min(i + batch_size, word_count)
+    print(f'進捗: {i}/{word_count} 単語処理中...')
     
-    # 既存のベクトルがあれば使用
-    if word in existing_vectors:
-        new_vectors[word] = existing_vectors[word]
-    else:
-        # 単語の文字コードを使用して疑似ランダムなベクトルを生成
-        np.random.seed(sum(ord(c) for c in word))
-        vector = np.random.uniform(-0.5, 0.5, vector_dim)
-        # 正規化
-        vector = vector / np.linalg.norm(vector)
-        new_vectors[word] = vector
+    for j in range(i, batch_end):
+        word = words[j]
+        
+        # 既存のベクトルがあれば使用
+        if word in existing_vectors:
+            new_vectors[word] = existing_vectors[word]
+        else:
+            try:
+                # 単語の文字コードを使用して疑似ランダムなベクトルを生成
+                np.random.seed(sum(ord(c) for c in word))
+                vector = np.random.uniform(-0.5, 0.5, vector_dim)
+                # 正規化
+                vector = vector / np.linalg.norm(vector)
+                new_vectors[word] = vector
+            except Exception as e:
+                print(f'警告: 単語「{word}」のベクトル生成に失敗しました: {e}')
+                continue
 
 # ベクトルファイルに保存
-with open(vectors_file, 'w') as f:
-    for word, vector in new_vectors.items():
-        vector_str = ' '.join([str(x) for x in vector])
-        f.write(f'{word} {vector_str}\n')
-
-print(f'単語ベクトルを保存しました: {vectors_file}')
+try:
+    os.makedirs(os.path.dirname(vectors_file), exist_ok=True)
+    with open(vectors_file, 'w') as f:
+        for word, vector in new_vectors.items():
+            vector_str = ' '.join([str(x) for x in vector])
+            f.write(f'{word} {vector_str}\\n'.replace('\\\\n', '\\n'))
+    print(f'単語ベクトルを保存しました: {vectors_file}')
+except Exception as e:
+    print(f'ベクトルファイルの保存に失敗しました: {e}')
+    sys.exit(1)
 "
 
 echo "単語ベクトルの更新が完了しました。"
