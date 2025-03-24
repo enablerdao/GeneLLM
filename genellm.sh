@@ -445,13 +445,8 @@ ask_question() {
     fi
     
     if [ "$FALLBACK" = "true" ]; then
-        # DNAコード検索を使用
-        if [[ "$question" == *"GeneLLM"* || "$question" == *"知識ベース"* || 
-              "$question" == *"自然言語処理"* || "$question" == *"機械学習"* ]]; then
-            "$BIN_DIR/genellm_dna" "$question"
-        else
-            "$WORKSPACE_DIR/gllm_enhanced" $debug_flag "$question"
-        fi
+        # すべての質問にDNA検索を使用
+        "$BIN_DIR/dna_search" "$question"
     else
         "$BIN_DIR/gllm" $debug_flag "$question"
     fi
@@ -477,13 +472,8 @@ start_chat() {
             *)
                 if [ -n "$question" ]; then
                     if [ "$FALLBACK" = "true" ]; then
-                        # DNAコード検索を使用
-                        if [[ "$question" == *"GeneLLM"* || "$question" == *"知識ベース"* || 
-                              "$question" == *"自然言語処理"* || "$question" == *"機械学習"* ]]; then
-                            "$BIN_DIR/genellm_dna" "$question"
-                        else
-                            "$WORKSPACE_DIR/gllm_enhanced" $debug_flag "$question"
-                        fi
+                        # すべての質問にDNA検索を使用
+                        "$BIN_DIR/dna_search" "$question"
                     else
                         "$BIN_DIR/gllm" $debug_flag "$question"
                     fi
