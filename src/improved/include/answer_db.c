@@ -170,8 +170,8 @@ double sentence_similarity(const char* sentence1, const char* sentence2) {
     return 0.0;
 }
 
-// 質問に対する回答を検索する
-const char* find_answer(const char* question) {
+// 質問に対する回答を検索し、類似度スコアも返す
+const char* find_answer_with_score(const char* question, double* score) {
     int i;
     double best_score = 0.0;
     int best_match = -1;
@@ -179,19 +179,23 @@ const char* find_answer(const char* question) {
     // 完全一致を検索
     for (i = 0; i < answer_db_size; i++) {
         if (strcmp(answer_db[i].question, question) == 0) {
+            if (score) *score = 1.0; // 完全一致は最高スコア
             return answer_db[i].answer;
         }
     }
     
     // 類似度に基づく検索
     for (i = 0; i < answer_db_size; i++) {
-        double score = sentence_similarity(question, answer_db[i].question);
+        double current_score = sentence_similarity(question, answer_db[i].question);
         
-        if (score > best_score) {
-            best_score = score;
+        if (current_score > best_score) {
+            best_score = current_score;
             best_match = i;
         }
     }
+    
+    // スコアを設定
+    if (score) *score = best_score;
     
     // 一定以上の類似度がある場合のみ回答を返す
     if (best_score > 0.5 && best_match >= 0) {
@@ -200,6 +204,11 @@ const char* find_answer(const char* question) {
     
     // 回答が見つからない場合
     return NULL;
+}
+
+// 質問に対する回答を検索する
+const char* find_answer(const char* question) {
+    return find_answer_with_score(question, NULL);
 }
 
 // 回答データベースのサイズを取得する

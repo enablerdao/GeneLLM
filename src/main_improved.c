@@ -87,7 +87,18 @@ int main(int argc, char* argv[]) {
             }
             
             // 回答を検索
-            const char* answer = find_answer(input);
+            double similarity_score = 0.0;
+            const char* answer = find_answer_with_score(input, &similarity_score);
+            
+            if (debug_mode) {
+                printf("デバッグ情報: 類似度スコア: %.4f\n", similarity_score);
+                if (similarity_score > 0.5) {
+                    printf("デバッグ情報: 十分な類似度があります\n");
+                } else {
+                    printf("デバッグ情報: 類似度が低いため回答が見つかりません\n");
+                }
+            }
+            
             if (answer != NULL) {
                 printf("応答: %s\n", answer);
             } else {
@@ -114,7 +125,18 @@ int main(int argc, char* argv[]) {
     }
     
     // 回答を検索
-    const char* answer = find_answer(question);
+    double similarity_score = 0.0;
+    const char* answer = find_answer_with_score(question, &similarity_score);
+    
+    if (debug_mode) {
+        printf("デバッグ情報: 類似度スコア: %.4f\n", similarity_score);
+        if (similarity_score > 0.5) {
+            printf("デバッグ情報: 十分な類似度があります\n");
+        } else {
+            printf("デバッグ情報: 類似度が低いため回答が見つかりません\n");
+        }
+    }
+    
     if (answer != NULL) {
         printf("応答: %s\n", answer);
     } else {

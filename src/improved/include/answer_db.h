@@ -7,6 +7,9 @@ void init_answer_db();
 // 質問に対する回答を検索する
 const char* find_answer(const char* question);
 
+// 質問に対する回答を検索し、類似度スコアも返す
+const char* find_answer_with_score(const char* question, double* score);
+
 // 回答データベースのサイズを取得する
 int get_answer_db_size();
 
