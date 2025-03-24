@@ -110,6 +110,7 @@ int main(int argc, char* argv[]) {
     // デバッグモードの場合は追加情報を表示
     if (debug_mode) {
         printf("デバッグ情報: 質問を処理中...\n");
+        printf("デバッグ情報: 回答データベースサイズ: %d件\n", get_answer_db_size());
     }
     
     // 回答を検索

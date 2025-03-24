@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define MAX_ANSWERS 100
 #define MAX_QUESTION_LENGTH 256
@@ -79,6 +80,96 @@ void init_answer_db() {
     printf("回答データベースを初期化しました（%d件の回答）\n", answer_db_size);
 }
 
+// 単語の類似度を計算する簡易関数
+double word_similarity(const char* word1, const char* word2) {
+    int len1 = strlen(word1);
+    int len2 = strlen(word2);
+    
+    // 長さが大きく異なる場合は類似度を下げる
+    double len_ratio = (double)len1 / len2;
+    if (len_ratio > 1.0) len_ratio = 1.0 / len_ratio;
+    
+    // 共通の文字数をカウント
+    int common_chars = 0;
+    for (int i = 0; i < len1; i++) {
+        for (int j = 0; j < len2; j++) {
+            if (tolower(word1[i]) == tolower(word2[j])) {
+                common_chars++;
+                break;
+            }
+        }
+    }
+    
+    // 類似度を計算（共通文字の割合と長さの比率を考慮）
+    double char_ratio = (double)common_chars / len1;
+    return char_ratio * 0.7 + len_ratio * 0.3;
+}
+
+// 文章の類似度を計算する
+double sentence_similarity(const char* sentence1, const char* sentence2) {
+    // 簡易的な実装: 文字列の部分一致と長さの比率で類似度を計算
+    if (strstr(sentence1, sentence2) != NULL) {
+        double len_ratio = (double)strlen(sentence2) / strlen(sentence1);
+        return 0.7 + len_ratio * 0.3; // 部分一致の場合は高いスコア
+    }
+    
+    if (strstr(sentence2, sentence1) != NULL) {
+        double len_ratio = (double)strlen(sentence1) / strlen(sentence2);
+        return 0.7 + len_ratio * 0.3; // 部分一致の場合は高いスコア
+    }
+    
+    // 単語レベルでの類似度を計算
+    char s1_copy[MAX_QUESTION_LENGTH];
+    char s2_copy[MAX_QUESTION_LENGTH];
+    strncpy(s1_copy, sentence1, MAX_QUESTION_LENGTH - 1);
+    strncpy(s2_copy, sentence2, MAX_QUESTION_LENGTH - 1);
+    s1_copy[MAX_QUESTION_LENGTH - 1] = '\0';
+    s2_copy[MAX_QUESTION_LENGTH - 1] = '\0';
+    
+    // 単語に分割
+    char* words1[100];
+    char* words2[100];
+    int word_count1 = 0;
+    int word_count2 = 0;
+    
+    char* word = strtok(s1_copy, " \t\n,.;:!?");
+    while (word != NULL && word_count1 < 100) {
+        words1[word_count1++] = word;
+        word = strtok(NULL, " \t\n,.;:!?");
+    }
+    
+    word = strtok(s2_copy, " \t\n,.;:!?");
+    while (word != NULL && word_count2 < 100) {
+        words2[word_count2++] = word;
+        word = strtok(NULL, " \t\n,.;:!?");
+    }
+    
+    // 単語間の類似度を計算
+    double total_similarity = 0.0;
+    int matches = 0;
+    
+    for (int i = 0; i < word_count1; i++) {
+        double best_word_sim = 0.0;
+        for (int j = 0; j < word_count2; j++) {
+            double sim = word_similarity(words1[i], words2[j]);
+            if (sim > best_word_sim) {
+                best_word_sim = sim;
+            }
+        }
+        if (best_word_sim > 0.5) { // 一定以上の類似度がある場合のみカウント
+            total_similarity += best_word_sim;
+            matches++;
+        }
+    }
+    
+    // 類似度のスコアを計算
+    if (matches > 0) {
+        return (total_similarity / matches) * ((double)matches / word_count1);
+    }
+    
+    return 0.0;
+}
+
 // 質問に対する回答を検索する
 const char* find_answer(const char* question) {
     int i;
@@ -92,25 +183,18 @@ const char* find_answer(const char* question) {
         }
     }
     
-    // 部分一致を検索（単純な文字列含有チェック）
+    // 類似度に基づく検索
     for (i = 0; i < answer_db_size; i++) {
-        if (strstr(question, answer_db[i].question) != NULL || 
-            strstr(answer_db[i].question, question) != NULL) {
-            // 文字列長の比率でスコアを計算
-            double len_ratio = (double)strlen(question) / strlen(answer_db[i].question);
-            if (len_ratio > 1.0) len_ratio = 1.0 / len_ratio;
-            
-            double score = len_ratio * 0.8; // 最大スコアは0.8（完全一致より低い）
-            
-            if (score > best_score) {
-                best_score = score;
-                best_match = i;
-            }
+        double score = sentence_similarity(question, answer_db[i].question);
+        
+        if (score > best_score) {
+            best_score = score;
+            best_match = i;
         }
     }
     
-    // 部分一致が見つかった場合
-    if (best_match >= 0) {
+    // 一定以上の類似度がある場合のみ回答を返す
+    if (best_score > 0.5 && best_match >= 0) {
         return answer_db[best_match].answer;
     }
     
