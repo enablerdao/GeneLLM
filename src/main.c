@@ -1,4 +1,8 @@
 #define _GNU_SOURCE
+
+// 外部関数の宣言
+extern void init_global_vector_db_impl();
+extern int get_global_vector_db_size_impl();
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,0 +1,30 @@
+#ifndef VECTOR_DB_H
+#define VECTOR_DB_H
+
+// ベクトルデータベース構造体の定義
+#define VECTOR_DIM 64
+#define MAX_VECTORS 1000
+
+typedef struct {
+    float vector[VECTOR_DIM];
+    int id;
+} VectorEntry;
+
+typedef struct {
+    VectorEntry entries[MAX_VECTORS];
+    int size;
+} VectorDB;
+
+// グローバル変数の宣言
+extern VectorDB global_vector_db;
+
+// 初期化関数
+void init_vector_db(VectorDB* db);
+
+// グローバルベクトルDBの初期化
+void init_global_vector_db();
+
+// グローバルベクトルDBのサイズ取得
+int get_global_vector_db_size();
+
+#endif // VECTOR_DB_H
