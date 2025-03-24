@@ -28,9 +28,19 @@ jobs:
       - name: Package
         run: |
           mkdir -p release
+          mkdir -p data knowledge/text logs
+          
+          # 必要なファイルが存在しない場合は作成
+          if [ ! -f "knowledge/text/japanese_words.txt" ]; then
+              echo "日本語単語ファイルを作成しています..."
+              echo "こんにちは" > knowledge/text/japanese_words.txt
+              echo "世界" >> knowledge/text/japanese_words.txt
+          fi
+          
           cp gllm release/gllm-linux
           cp -r data release/data
           cp -r logs release/logs
+          cp -r knowledge release/knowledge
           tar -czvf gllm-linux.tar.gz -C release .
       
       - name: Upload artifact
@@ -56,9 +66,19 @@ jobs:
       - name: Package
         run: |
           mkdir -p release
+          mkdir -p data knowledge/text logs
+          
+          # 必要なファイルが存在しない場合は作成
+          if [ ! -f "knowledge/text/japanese_words.txt" ]; then
+              echo "日本語単語ファイルを作成しています..."
+              echo "こんにちは" > knowledge/text/japanese_words.txt
+              echo "世界" >> knowledge/text/japanese_words.txt
+          fi
+          
           cp gllm release/gllm-macos
           cp -r data release/data
           cp -r logs release/logs
+          cp -r knowledge release/knowledge
           tar -czvf gllm-macos.tar.gz -C release .
       
       - name: Upload artifact
@@ -90,14 +110,31 @@ jobs:
       - name: Build
         run: |
           # Windows用のビルドコマンド
-          gcc -Wall -Wextra -std=c99 -o gllm.exe src/main.c src/vector_search/vector_search.c src/include/word_loader.c -I"C:/Program Files/MeCab/sdk" -L"C:/Program Files/MeCab/sdk" -L"./curl/lib" -lmecab -lcurl -lm
+          if (Test-Path -Path "src_new") {
+            echo "新しいソースコードを使用してビルドします..."
+            gcc -Wall -Wextra -std=c99 -o gllm.exe src_new/main_simple.c src_new/include/vector_db.c src_new/vector_search/vector_search.c src_new/vector_search/vector_search_global.c src_new/include/word_loader/word_loader.c -I"C:/Program Files/MeCab/sdk" -L"C:/Program Files/MeCab/sdk" -L"./curl/lib" -lmecab -lcurl -lm
+          } else {
+            echo "従来のソースコードを使用してビルドします..."
+            gcc -Wall -Wextra -std=c99 -o gllm.exe src/main.c src/vector_search/vector_search.c src/include/word_loader.c -I"C:/Program Files/MeCab/sdk" -L"C:/Program Files/MeCab/sdk" -L"./curl/lib" -lmecab -lcurl -lm
+          }
       
       - name: Package
         run: |
           mkdir -p release
+          mkdir -p data knowledge/text logs
+          
+          # 必要なファイルが存在しない場合は作成
+          if (-not (Test-Path -Path "knowledge/text/japanese_words.txt")) {
+              echo "日本語単語ファイルを作成しています..."
+              New-Item -Path "knowledge/text" -ItemType Directory -Force
+              "こんにちは" | Out-File -FilePath "knowledge/text/japanese_words.txt" -Encoding utf8
+              "世界" | Out-File -Append -FilePath "knowledge/text/japanese_words.txt" -Encoding utf8
+          }
+          
           cp gllm.exe release/
           cp -r data release/data
           cp -r logs release/logs
+          cp -r knowledge release/knowledge
           # 必要なDLLをコピー
           cp "C:/Program Files/MeCab/bin/libmecab.dll" release/
           cp "./curl/bin/libcurl.dll" release/
