@@ -614,7 +614,7 @@ void init_topics() {
 void load_knowledge_from_file(const char* filename, int topic_id) {
     char filepath[256];
     // 知識ファイルディレクトリから探す（相対パスを使用）
-    sprintf(filepath, "data/knowledge_files/%s", filename);
+    sprintf(filepath, "knowledge/docs/%s", filename);
     FILE* file = fopen(filepath, "r");
     
     if (!file) {

@@ -121,9 +121,11 @@ echo "🔨 プロジェクトをビルドしています..."
 
 # ディレクトリを作成
 mkdir -p bin
-mkdir -p data/knowledge_base
+mkdir -p knowledge/base
+mkdir -p knowledge/docs
 mkdir -p data/models
 mkdir -p data/vector_db
+mkdir -p data/text/wikipedia
 mkdir -p logs
 
 # メインプログラムをビルド

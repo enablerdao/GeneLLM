@@ -633,7 +633,7 @@ void load_knowledge_from_file(const char* filename, int topic_id) {
     if (!knowledge_base_checked || difftime(current_time, last_check_time) > 60) { // 1分ごとにチェック
         // 知識ベースディレクトリの存在と変更をチェック
         struct stat st;
-        if (stat("data/knowledge_base/system", &st) == 0) {
+        if (stat("knowledge/base/system", &st) == 0) {
             if (!knowledge_base_checked || st.st_mtime > last_check_time) {
                 // フォルダが存在し、前回のチェック以降に変更があった
                 knowledge_base_checked = true;
@@ -645,9 +645,9 @@ void load_knowledge_from_file(const char* filename, int topic_id) {
     
     // 複数の可能なパスを試す
     const char* search_paths[] = {
-        "data/knowledge_base/system/%s",
-        "data/knowledge_base/%s",
-        "data/knowledge_files/%s",
+        "knowledge/base/system/%s",
+        "knowledge/base/%s",
+        "knowledge/docs/%s",
         "data/%s"
     };
     
