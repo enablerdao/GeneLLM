@@ -1,12 +1,13 @@
 name: Build and Release Binaries
 
+# ワークフローを一時的に無効化
 on:
-  push:
-    branches: [ main ]
-    tags:
-      - 'v*'
-  pull_request:
-    branches: [ main ]
+  # push:
+  #   branches: [ main ]
+  #   tags:
+  #     - 'v*'
+  # pull_request:
+  #   branches: [ main ]
   workflow_dispatch:
 
 # 環境変数の設定
