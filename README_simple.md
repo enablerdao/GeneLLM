@@ -5,18 +5,18 @@
 ## ⚡ クイックスタート（1行で実行）
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/lightweight-ai-c/main/quick_start.sh | bash
+curl -sSL https://raw.githubusercontent.com/enablerdao/GeneLLM/main/quick_start.sh | bash
 ```
 
 このコマンドは必要な依存関係をインストールし、プロジェクトをビルドして最初の質問を実行します。
 
 ## 📦 ビルド済みバイナリ
 
-各プラットフォーム向けのビルド済みバイナリは[リリースページ](https://github.com/yourusername/lightweight-ai-c/releases)からダウンロードできます：
+各プラットフォーム向けのビルド済みバイナリは[リリースページ](https://github.com/enablerdao/GeneLLM/releases)からダウンロードできます：
 
-- [Linux版](https://github.com/yourusername/lightweight-ai-c/releases/latest/download/gllm-linux.tar.gz)
-- [macOS版](https://github.com/yourusername/lightweight-ai-c/releases/latest/download/gllm-macos.tar.gz)
-- [Windows版](https://github.com/yourusername/lightweight-ai-c/releases/latest/download/gllm-windows.zip)
+- [Linux版](https://github.com/enablerdao/GeneLLM/releases/latest/download/gllm-linux.tar.gz)
+- [macOS版](https://github.com/enablerdao/GeneLLM/releases/latest/download/gllm-macos.tar.gz)
+- [Windows版](https://github.com/enablerdao/GeneLLM/releases/latest/download/gllm-windows.zip)
 
 ## 実装コンポーネント
 

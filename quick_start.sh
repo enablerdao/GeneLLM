@@ -12,7 +12,7 @@ echo "============================================================"
 # リポジトリをクローン（存在しない場合）
 if [ ! -d "src" ]; then
   echo "📥 リポジトリをクローンしています..."
-  git clone https://github.com/yourusername/lightweight-ai-c.git .
+  git clone https://github.com/enablerdao/GeneLLM.git .
 fi
 
 # ビルドスクリプトを実行
