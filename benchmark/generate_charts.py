@@ -29,11 +29,14 @@ except Exception as e:
     print(f"フォント設定エラー: {e}")
     print("警告: 日本語フォントの設定に失敗しました。グラフのテキストが正しく表示されない可能性があります。")
 
+# 最新の結果ディレクトリを使用
+latest_dir = 'benchmark/results/latest'
+
 # CSVファイルのパス
-csv_file = 'benchmark/results/benchmark_results.csv'
+csv_file = f'{latest_dir}/benchmark_results.csv'
 
 # 出力ディレクトリ
-output_dir = 'benchmark/results/charts'
+output_dir = f'{latest_dir}/charts'
 os.makedirs(output_dir, exist_ok=True)
 
 # CSVファイルが存在するか確認

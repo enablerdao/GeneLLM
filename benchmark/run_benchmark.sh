@@ -3,12 +3,17 @@
 # ベンチマークスクリプト
 # 20個の質問に対する応答時間と品質を測定します
 
-# 出力ディレクトリを作成
-mkdir -p benchmark/results
+# タイムスタンプ付きの出力ディレクトリを作成
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+RESULTS_DIR="benchmark/results/$TIMESTAMP"
+mkdir -p "$RESULTS_DIR"
 
 # 結果ファイル
-RESULTS_FILE="benchmark/results/benchmark_results.md"
-CSV_FILE="benchmark/results/benchmark_results.csv"
+RESULTS_FILE="$RESULTS_DIR/benchmark_results.md"
+CSV_FILE="$RESULTS_DIR/benchmark_results.csv"
+
+# 最新の結果へのシンボリックリンクを作成
+ln -sf "$RESULTS_DIR" benchmark/results/latest
 
 # 結果ファイルの初期化
 echo "# GeneLLM ベンチマーク結果" > $RESULTS_FILE
@@ -143,7 +148,7 @@ while IFS= read -r question; do
     echo "$question_num,\"$question\",$elapsed_time_rounded,$response_length,$score" >> $CSV_FILE
     
     # 詳細な結果を別ファイルに保存
-    detail_file="benchmark/results/question_${question_num}.md"
+    detail_file="$RESULTS_DIR/question_${question_num}.md"
     echo "# 質問 $question_num" > $detail_file
     echo "" >> $detail_file
     echo "## 質問" >> $detail_file

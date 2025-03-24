@@ -15,21 +15,21 @@
 ### ベンチマークの実行
 
 ```bash
-# 実行権限を付与
-chmod +x benchmark/run_benchmark.sh
-
-# ベンチマークを実行
-./benchmark/run_benchmark.sh
+# すべてのステップを一度に実行（ベンチマーク実行 + グラフ生成）
+./benchmark/run_all.sh
 ```
 
-### グラフの生成
+### 過去のベンチマーク結果との比較
 
 ```bash
-# 必要なPythonパッケージをインストール
-pip install pandas matplotlib numpy
+# 最新の2つのベンチマーク結果を比較
+./benchmark/run_comparison.sh
 
-# グラフを生成
-python benchmark/generate_charts.py
+# 特定のベンチマーク結果を比較
+./benchmark/run_comparison.sh --dir benchmark/results/20230101_120000 benchmark/results/20230102_120000 --label "バージョン1.0" "バージョン1.1"
+
+# ヘルプを表示
+./benchmark/run_comparison.sh --help
 ```
 
 ## ファイル構成
@@ -37,11 +37,17 @@ python benchmark/generate_charts.py
 - `questions.txt` - ベンチマークに使用する20個の質問
 - `run_benchmark.sh` - ベンチマークを実行するスクリプト
 - `generate_charts.py` - 結果からグラフを生成するPythonスクリプト
+- `run_all.sh` - ベンチマークの実行とグラフ生成を一度に行うスクリプト
+- `compare_benchmarks.py` - 複数のベンチマーク結果を比較するPythonスクリプト
+- `run_comparison.sh` - ベンチマーク比較を実行するスクリプト
 - `results/` - ベンチマーク結果の出力ディレクトリ
-  - `benchmark_results.md` - Markdown形式の結果
-  - `benchmark_results.csv` - CSV形式の結果
-  - `question_*.md` - 各質問の詳細結果
-  - `charts/` - 生成されたグラフ
+  - `YYYYMMDD_HHMMSS/` - タイムスタンプ付きの結果ディレクトリ
+    - `benchmark_results.md` - Markdown形式の結果
+    - `benchmark_results.csv` - CSV形式の結果
+    - `question_*.md` - 各質問の詳細結果
+    - `charts/` - 生成されたグラフ
+  - `latest/` - 最新の結果へのシンボリックリンク
+  - `comparison/` - ベンチマーク比較結果
 
 ## 評価方法
 
