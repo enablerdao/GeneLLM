@@ -124,10 +124,28 @@ mkdir -p bin
 mkdir -p knowledge/base
 mkdir -p knowledge/docs
 mkdir -p knowledge/text/wikipedia
+mkdir -p knowledge/text
 mkdir -p data/models
 mkdir -p data/vector_db
 mkdir -p logs
 touch knowledge/learning_db.txt
+
+# 日本語単語リストのサンプルを作成（存在しない場合）
+if [ ! -f knowledge/text/japanese_words.txt ]; then
+  echo "日本語単語リストのサンプルを作成しています..."
+  cat > knowledge/text/japanese_words.txt << EOL
+こんにちは
+世界
+プログラミング
+コンピュータ
+人工知能
+機械学習
+自然言語処理
+データベース
+アルゴリズム
+ネットワーク
+EOL
+fi
 
 # メインプログラムをビルド
 echo "メインプログラムをビルドしています..."

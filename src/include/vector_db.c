@@ -16,7 +16,7 @@ void init_global_vector_db_impl() {
     
     // データファイルのパス
     const char* vector_file = "data/word_vectors.dat";
-    const char* japanese_words_file = "data/japanese_words.txt";
+    const char* japanese_words_file = "knowledge/text/japanese_words.txt";
     
     // 環境変数でデバッグモードをチェック
     const char* debug_env = getenv("DEBUG");

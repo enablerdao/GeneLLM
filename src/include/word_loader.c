@@ -93,7 +93,7 @@ int save_word_vectors(const char* filename, VectorDB* db) {
     for (int i = 0; i < db->size; i++) {
         // 単語リストから単語を取得（なければIDを使用）
         char word[256];
-        FILE* word_file = fopen("data/japanese_words.txt", "r");
+        FILE* word_file = fopen("knowledge/text/japanese_words.txt", "r");
         if (word_file && db->entries[i].id < 5000) {  // 単語リストの範囲内のIDのみ
             // 対応する行を読み込む
             for (int j = 0; j <= db->entries[i].id; j++) {
@@ -208,7 +208,7 @@ int generate_large_word_vector_dataset(VectorDB* db, int target_size) {
            current_size, target_size, remaining);
     
     // 日本語単語リストファイルを読み込む
-    FILE* file = fopen("data/japanese_words.txt", "r");
+    FILE* file = fopen("knowledge/text/japanese_words.txt", "r");
     if (!file) {
         printf("日本語単語リストファイルが見つかりません。処理を中止します。\n");
         // 単語リストがない場合は処理を中止
@@ -268,7 +268,7 @@ int generate_large_word_vector_dataset(VectorDB* db, int target_size) {
         if (added < remaining) {
             printf("単語リストが不足しています。単語リストを繰り返し使用します。\n");
             // 単語リストを再度開く
-            file = fopen("data/japanese_words.txt", "r");
+            file = fopen("knowledge/text/japanese_words.txt", "r");
             if (file) {
                 while (added < remaining && fgets(word, sizeof(word), file)) {
                     // 改行を削除
