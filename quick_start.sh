@@ -18,7 +18,7 @@ fi
 # 必要なライブラリをチェックしてインストールする関数
 check_and_install_dependencies() {
     echo "必要な依存関係をチェックしています..."
-    
+
     # OS の種類を判定
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -31,13 +31,13 @@ check_and_install_dependencies() {
     else
         OS=$(uname -s)
     fi
-    
+
     echo "検出されたOS: $OS"
-    
+
     # Debian/Ubuntu系
     if [[ "$OS" == *"Ubuntu"* ]] || [[ "$OS" == *"Debian"* ]]; then
         echo "Debian/Ubuntu系のシステムを検出しました"
-        
+
         # MeCabがインストールされているか確認
         if ! dpkg -l | grep -q libmecab-dev; then
             echo "MeCabがインストールされていません。インストールします..."
@@ -46,7 +46,7 @@ check_and_install_dependencies() {
         else
             echo "MeCabはすでにインストールされています"
         fi
-        
+
         # libcurlがインストールされているか確認
         if ! dpkg -l | grep -q libcurl4-openssl-dev; then
             echo "libcurlがインストールされていません。インストールします..."
@@ -55,11 +55,11 @@ check_and_install_dependencies() {
         else
             echo "libcurlはすでにインストールされています"
         fi
-    
+
     # Red Hat/CentOS/Fedora系
     elif [[ "$OS" == *"CentOS"* ]] || [[ "$OS" == *"Red Hat"* ]] || [[ "$OS" == *"Fedora"* ]]; then
         echo "Red Hat/CentOS/Fedora系のシステムを検出しました"
-        
+
         # MeCabがインストールされているか確認
         if ! rpm -qa | grep -q mecab-devel; then
             echo "MeCabがインストールされていません。インストールします..."
@@ -67,7 +67,7 @@ check_and_install_dependencies() {
         else
             echo "MeCabはすでにインストールされています"
         fi
-        
+
         # libcurlがインストールされているか確認
         if ! rpm -qa | grep -q libcurl-devel; then
             echo "libcurlがインストールされていません。インストールします..."
@@ -75,17 +75,17 @@ check_and_install_dependencies() {
         else
             echo "libcurlはすでにインストールされています"
         fi
-    
+
     # macOS
     elif [[ "$OS" == *"Darwin"* ]] || [[ "$OS" == *"Mac"* ]]; then
         echo "macOSを検出しました"
-        
+
         # Homebrewがインストールされているか確認
         if ! command -v brew &> /dev/null; then
             echo "Homebrewがインストールされていません。インストールします..."
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         fi
-        
+
         # MeCabがインストールされているか確認
         if ! brew list mecab &> /dev/null; then
             echo "MeCabがインストールされていません。インストールします..."
@@ -93,7 +93,7 @@ check_and_install_dependencies() {
         else
             echo "MeCabはすでにインストールされています"
         fi
-        
+
         # libcurlがインストールされているか確認
         if ! brew list curl &> /dev/null; then
             echo "curlがインストールされていません。インストールします..."
@@ -101,7 +101,7 @@ check_and_install_dependencies() {
         else
             echo "curlはすでにインストールされています"
         fi
-    
+
     # その他のOS
     else
         echo "未サポートのOSです: $OS"
@@ -109,7 +109,7 @@ check_and_install_dependencies() {
         echo "- MeCab (libmecab-dev)"
         echo "- libcurl (libcurl4-openssl-dev)"
     fi
-    
+
     echo "依存関係のチェックが完了しました"
 }
 
@@ -148,7 +148,41 @@ fi
 
 # メインプログラムをビルド
 echo "メインプログラムをビルドしています..."
-gcc -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c -lmecab -lm -lcurl
+
+# ビルドスクリプトが存在する場合はそれを使用
+if [ -f "build.sh" ]; then
+    chmod +x build.sh
+    ./build.sh
+else
+    # macOSの場合はMeCabのパスを検出
+    MECAB_CFLAGS=""
+    MECAB_LDFLAGS=""
+    
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        # mecab-configが利用可能か確認
+        if command -v mecab-config &> /dev/null; then
+            MECAB_CFLAGS="-I$(mecab-config --inc-dir)"
+            MECAB_LDFLAGS="-L$(mecab-config --libs-only-L | sed 's/-L//g')"
+        # Homebrewのデフォルトパスを試す
+        elif [ -d "/usr/local/include/mecab" ]; then
+            MECAB_CFLAGS="-I/usr/local/include"
+            MECAB_LDFLAGS="-L/usr/local/lib"
+        elif [ -d "/opt/homebrew/include/mecab" ]; then
+            MECAB_CFLAGS="-I/opt/homebrew/include"
+            MECAB_LDFLAGS="-L/opt/homebrew/lib"
+        fi
+    fi
+    
+    # src_newディレクトリが存在する場合は新しいソースを使用
+    if [ -d "src_new" ]; then
+        echo "新しいソースコードを使用してビルドします..."
+        gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o gllm src_new/main_simple.c src_new/include/vector_db.c src_new/vector_search/vector_search.c src_new/vector_search/vector_search_global.c src_new/include/word_loader/word_loader.c $MECAB_LDFLAGS -lmecab -lm -lcurl
+    else
+        # 従来のソースコードを使用
+        gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c $MECAB_LDFLAGS -lmecab -lm -lcurl
+    fi
+fi
+
 # bin ディレクトリにもコピー
 if [ -f gllm ]; then
     cp gllm bin/main
@@ -157,9 +191,28 @@ fi
 # 個別モジュールをビルド
 echo "個別モジュールをビルドしています..."
 
+# macOSの場合はMeCabのパスを検出
+MECAB_CFLAGS=""
+MECAB_LDFLAGS=""
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    # mecab-configが利用可能か確認
+    if command -v mecab-config &> /dev/null; then
+        MECAB_CFLAGS="-I$(mecab-config --inc-dir)"
+        MECAB_LDFLAGS="-L$(mecab-config --libs-only-L | sed 's/-L//g')"
+    # Homebrewのデフォルトパスを試す
+    elif [ -d "/usr/local/include/mecab" ]; then
+        MECAB_CFLAGS="-I/usr/local/include"
+        MECAB_LDFLAGS="-L/usr/local/lib"
+    elif [ -d "/opt/homebrew/include/mecab" ]; then
+        MECAB_CFLAGS="-I/opt/homebrew/include"
+        MECAB_LDFLAGS="-L/opt/homebrew/lib"
+    fi
+fi
+
 # ファイルが存在する場合のみビルド
 if [ -f src/analyzers/simple_analyzer.c ]; then
-    gcc -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c -lmecab
+    gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c $MECAB_LDFLAGS -lmecab
 fi
 
 if [ -f src/compressors/dna_compressor.c ]; then
@@ -175,7 +228,7 @@ if [ -f src/generators/graph_generator.c ]; then
 fi
 
 if [ -f src/routers/router_model.c ]; then
-    gcc -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c -lmecab
+    gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c $MECAB_LDFLAGS -lmecab
 fi
 
 # 最初の質問を実行
