@@ -59,8 +59,8 @@ echo "GeneLLMをビルドしています..."
 # 改良版のソースコードを使用
 if [ -f "src/main_improved.c" ]; then
     echo "改良版のソースコードを使用してビルドします..."
-    echo "コンパイルコマンド: $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main_improved.c src/improved/include/vector_db.c src/improved/vector_search/vector_search.c src/improved/vector_search/vector_search_global.c src/improved/include/word_loader/word_loader.c $LDFLAGS -lmecab -lm -lcurl"
-    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main_improved.c src/improved/include/vector_db.c src/improved/vector_search/vector_search.c src/improved/vector_search/vector_search_global.c src/improved/include/word_loader/word_loader.c $LDFLAGS -lmecab -lm -lcurl
+    echo "コンパイルコマンド: $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main_improved.c src/improved/include/vector_db.c src/improved/vector_search/vector_search.c src/improved/vector_search/vector_search_global.c src/improved/include/word_loader/word_loader.c src/improved/include/answer_db.c $LDFLAGS -lmecab -lm -lcurl"
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main_improved.c src/improved/include/vector_db.c src/improved/vector_search/vector_search.c src/improved/vector_search/vector_search_global.c src/improved/include/word_loader/word_loader.c src/improved/include/answer_db.c $LDFLAGS -lmecab -lm -lcurl
 else
     # 従来のソースコードを使用
     echo "従来のソースコードを使用してビルドします..."
