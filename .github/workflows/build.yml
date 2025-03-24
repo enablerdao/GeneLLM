@@ -57,6 +57,12 @@ jobs:
       - name: Install dependencies
         run: |
           brew install mecab mecab-ipadic curl
+          # MeCabのインクルードパスを確認
+          mecab-config --inc-dir
+          ls -la $(mecab-config --inc-dir)
+          # mecab.hが存在するか確認
+          find /usr/local/include -name mecab.h
+          find /opt/homebrew/include -name mecab.h
       
       - name: Build
         run: |

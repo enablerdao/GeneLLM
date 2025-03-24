@@ -204,6 +204,44 @@ fi
 echo "個別モジュールをビルドしています..."
 echo "Building individual modules..."
 
+# macOSでのmecab.hが見つからない問題を解決するための追加チェック
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    # mecab-configが利用可能かどうかを確認
+    if command -v mecab-config >/dev/null 2>&1; then
+        echo "mecab-configを使用してMeCabのパスを検出します..."
+        MECAB_INCLUDE_PATH=$(mecab-config --inc-dir)
+        echo "MeCabインクルードパス: $MECAB_INCLUDE_PATH"
+        
+        # mecab.hファイルが存在するか確認
+        if [ -f "$MECAB_INCLUDE_PATH/mecab.h" ]; then
+            echo "mecab.hが見つかりました: $MECAB_INCLUDE_PATH/mecab.h"
+        else
+            echo "警告: $MECAB_INCLUDE_PATH/mecab.h が見つかりません"
+            
+            # 一般的なパスを確認
+            POSSIBLE_PATHS=(
+                "/usr/local/include"
+                "/usr/local/include/mecab"
+                "/opt/homebrew/include"
+                "/opt/homebrew/include/mecab"
+                "/usr/include"
+                "/usr/include/mecab"
+                "$(brew --prefix 2>/dev/null)/include"
+                "$(brew --prefix 2>/dev/null)/include/mecab"
+            )
+            
+            for path in "${POSSIBLE_PATHS[@]}"; do
+                if [ -f "$path/mecab.h" ]; then
+                    echo "mecab.hが見つかりました: $path/mecab.h"
+                    MECAB_INCLUDE_PATH="$path"
+                    CFLAGS="-I$MECAB_INCLUDE_PATH -arch $(uname -m)"
+                    break
+                fi
+            done
+        fi
+    fi
+fi
+
 # macOSの場合はMeCabのパスを検出
 MECAB_CFLAGS=""
 MECAB_LDFLAGS=""
