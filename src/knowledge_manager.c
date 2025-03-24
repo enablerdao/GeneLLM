@@ -807,85 +807,174 @@ int tokenize_file(const char *filepath, const char *output_filepath) {
     
     // マークダウンファイルの場合、マークダウン記法を除去
     if (ext && strcmp(ext, "md") == 0) {
-        // マークダウン処理のためのコマンド
-        char temp_file[MAX_PATH_LENGTH];
-        snprintf(temp_file, MAX_PATH_LENGTH, "%s/temp_md_%d.txt", temp_dir, (int)time(NULL));
-        
-        FILE *fp = fopen(temp_file, "w");
-        if (fp) {
-            fputs(content, fp);
-            fclose(fp);
+        // マークダウン記法を簡易的に除去
+        char *processed_content = (char *)malloc(strlen(content) + 1);
+        if (processed_content) {
+            char *src = content;
+            char *dst = processed_content;
+            int in_code_block = 0;
             
-            // マークダウン処理コマンド
-            char command[MAX_PATH_LENGTH * 3];
-            snprintf(command, MAX_PATH_LENGTH * 3, 
-                     "cat %s | sed 's/^#\\+\\s\\+//' | sed '/^```/,/^```/d' | sed -E 's/\\[([^]]*)\\]\\([^)]*\\)/\\1/g' | sed 's/\\*\\*\\([^*]*\\)\\*\\*/\\1/g' | sed 's/\\*\\([^*]*\\)\\*/\\1/g' > %s.processed",
-                     temp_file, temp_file);
-            system(command);
-            
-            // 処理後のファイルを読み込む
-            free(content);
-            char processed_file[MAX_PATH_LENGTH];
-            snprintf(processed_file, MAX_PATH_LENGTH, "%s.processed", temp_file);
-            content = read_file_content(processed_file);
-            
-            // 一時ファイルを削除
-            remove(temp_file);
-            remove(processed_file);
-            
-            if (!content) {
-                return 0;
+            while (*src) {
+                // コードブロックをスキップ
+                if (strncmp(src, "```", 3) == 0) {
+                    in_code_block = !in_code_block;
+                    src += 3;
+                    while (*src && *src != '\n') src++;
+                    if (*src) src++;
+                    continue;
+                }
+                
+                // コードブロック内ならスキップ
+                if (in_code_block) {
+                    while (*src && *src != '\n') src++;
+                    if (*src) src++;
+                    continue;
+                }
+                
+                // 見出しの#を削除
+                if (*src == '#') {
+                    while (*src == '#') src++;
+                    if (*src == ' ') src++;
+                }
+                
+                // リンク [text](url) -> text
+                if (*src == '[') {
+                    char *link_start = src;
+                    src++;
+                    while (*src && *src != ']') {
+                        *dst++ = *src++;
+                    }
+                    if (*src == ']' && *(src+1) == '(') {
+                        src += 2;
+                        while (*src && *src != ')') src++;
+                        if (*src) src++;
+                    } else {
+                        // リンク形式でなければ元に戻す
+                        src = link_start;
+                        *dst++ = *src++;
+                    }
+                    continue;
+                }
+                
+                // 強調 **text** -> text または *text* -> text
+                if (*src == '*') {
+                    int count = 0;
+                    while (*src == '*') {
+                        count++;
+                        src++;
+                    }
+                    if (count == 1 || count == 2) {
+                        char *end = strstr(src, count == 1 ? "*" : "**");
+                        if (end) {
+                            while (src < end) {
+                                *dst++ = *src++;
+                            }
+                            src += count;
+                            continue;
+                        }
+                    }
+                    // 強調形式でなければ元に戻す
+                    for (int i = 0; i < count; i++) {
+                        *dst++ = '*';
+                    }
+                    continue;
+                }
+                
+                // その他の文字はそのままコピー
+                *dst++ = *src++;
             }
+            
+            *dst = '\0';
+            free(content);
+            content = processed_content;
         }
     }
     // テキストファイルの場合、質問|回答形式を処理
     else if (ext && strcmp(ext, "txt") == 0) {
         // 質問|回答形式を検出
         if (strchr(content, '|')) {
-            // 質問と回答を抽出するための一時ファイル
-            char temp_file[MAX_PATH_LENGTH];
-            snprintf(temp_file, MAX_PATH_LENGTH, "%s/temp_txt_%d.txt", temp_dir, (int)time(NULL));
+            // 質問と回答を抽出
+            char *questions = NULL;
+            char *answers = NULL;
+            size_t questions_size = 0;
+            size_t answers_size = 0;
+            size_t questions_capacity = 1024;
+            size_t answers_capacity = 1024;
             
-            FILE *fp = fopen(temp_file, "w");
-            if (fp) {
-                fputs(content, fp);
-                fclose(fp);
+            questions = (char *)malloc(questions_capacity);
+            answers = (char *)malloc(answers_capacity);
+            
+            if (questions && answers) {
+                questions[0] = '\0';
+                answers[0] = '\0';
                 
-                // 質問と回答を抽出するコマンド
-                char questions_file[MAX_PATH_LENGTH];
-                char answers_file[MAX_PATH_LENGTH];
-                snprintf(questions_file, MAX_PATH_LENGTH, "%s.questions", temp_file);
-                snprintf(answers_file, MAX_PATH_LENGTH, "%s.answers", temp_file);
+                char *line = content;
+                char *next_line;
                 
-                char command[MAX_PATH_LENGTH * 3];
-                snprintf(command, MAX_PATH_LENGTH * 3, 
-                         "cat %s | grep -E \"^[^#|]+|\" | cut -d'|' -f1 > %s",
-                         temp_file, questions_file);
-                system(command);
-                
-                snprintf(command, MAX_PATH_LENGTH * 3, 
-                         "cat %s | grep -E \"^[^#|]+|\" | cut -d'|' -f2- > %s",
-                         temp_file, answers_file);
-                system(command);
+                while (line && *line) {
+                    next_line = strchr(line, '\n');
+                    if (next_line) {
+                        *next_line = '\0';
+                    }
+                    
+                    // 質問|回答形式の行を処理
+                    char *separator = strchr(line, '|');
+                    if (separator && line[0] != '#') {
+                        *separator = '\0';
+                        
+                        // 質問を追加
+                        size_t line_len = strlen(line);
+                        if (questions_size + line_len + 2 > questions_capacity) {
+                            questions_capacity *= 2;
+                            questions = (char *)realloc(questions, questions_capacity);
+                            if (!questions) break;
+                        }
+                        
+                        if (questions_size > 0) {
+                            strcat(questions, "\n");
+                            questions_size++;
+                        }
+                        strcat(questions, line);
+                        questions_size += line_len;
+                        
+                        // 回答を追加
+                        line_len = strlen(separator + 1);
+                        if (answers_size + line_len + 2 > answers_capacity) {
+                            answers_capacity *= 2;
+                            answers = (char *)realloc(answers, answers_capacity);
+                            if (!answers) break;
+                        }
+                        
+                        if (answers_size > 0) {
+                            strcat(answers, "\n");
+                            answers_size++;
+                        }
+                        strcat(answers, separator + 1);
+                        answers_size += line_len;
+                        
+                        *separator = '|';  // 元に戻す
+                    }
+                    
+                    if (next_line) {
+                        *next_line = '\n';  // 元に戻す
+                        line = next_line + 1;
+                    } else {
+                        break;
+                    }
+                }
                 
                 // 質問と回答を結合
-                char *questions = read_file_content(questions_file);
-                char *answers = read_file_content(answers_file);
-                
-                if (questions && answers && strlen(questions) > 0 && strlen(answers) > 0) {
+                if (questions_size > 0 && answers_size > 0) {
                     free(content);
-                    content = (char *)malloc(strlen(questions) + strlen(answers) + 3);
+                    content = (char *)malloc(questions_size + answers_size + 3);
                     if (content) {
                         sprintf(content, "%s\n\n%s", questions, answers);
                     }
                 }
                 
-                // メモリと一時ファイルを解放
-                if (questions) free(questions);
-                if (answers) free(answers);
-                remove(temp_file);
-                remove(questions_file);
-                remove(answers_file);
+                // メモリを解放
+                free(questions);
+                free(answers);
                 
                 if (!content) {
                     return 0;
@@ -917,10 +1006,11 @@ int tokenize_file(const char *filepath, const char *output_filepath) {
         create_directory(output_dir);
     }
     
-    // トークナイズ処理
+    // トークナイズ処理用の一時ファイル
     char temp_content_file[MAX_PATH_LENGTH];
     snprintf(temp_content_file, MAX_PATH_LENGTH, "%s/temp_content_%d.txt", temp_dir, (int)time(NULL));
     
+    // 一時ファイルを作成
     FILE *fp = fopen(temp_content_file, "w");
     if (!fp) {
         free(content);
@@ -934,19 +1024,39 @@ int tokenize_file(const char *filepath, const char *output_filepath) {
     if (strlen(content) > 10000) {
         printf("  大きなファイルを分割して処理します: %s\n", filepath);
         
-        // 最初の10000文字だけをトークナイズ
-        char command[MAX_PATH_LENGTH * 3];
-        snprintf(command, MAX_PATH_LENGTH * 3, 
-                 "head -c 10000 %s | %s/bin/tokens tokenize \"$(head -c 10000 %s)\" > %s",
-                 temp_content_file, workspace_dir, temp_content_file, output_filepath);
-        system(command);
+        // 内容を一時ファイルに書き込む
+        FILE *fp = fopen(temp_content_file, "w");
+        if (fp) {
+            fputs(content, fp);
+            fclose(fp);
+            
+            // 最初の10000文字だけをトークナイズ
+            char command[MAX_PATH_LENGTH * 3];
+            snprintf(command, MAX_PATH_LENGTH * 3, 
+                     "%s/bin/tokens tokenize \"$(head -c 10000 %s)\" > %s",
+                     workspace_dir, temp_content_file, output_filepath);
+            system(command);
+        } else {
+            printf("  警告: 一時ファイルの作成に失敗しました\n");
+            return 0;
+        }
     } else {
-        // 通常のトークナイズ処理
-        char command[MAX_PATH_LENGTH * 3];
-        snprintf(command, MAX_PATH_LENGTH * 3, 
-                 "%s/bin/tokens tokenize \"%s\" > %s",
-                 workspace_dir, content, output_filepath);
-        system(command);
+        // 内容を一時ファイルに書き込む
+        FILE *fp = fopen(temp_content_file, "w");
+        if (fp) {
+            fputs(content, fp);
+            fclose(fp);
+            
+            // 通常のトークナイズ処理
+            char command[MAX_PATH_LENGTH * 3];
+            snprintf(command, MAX_PATH_LENGTH * 3, 
+                     "%s/bin/tokens tokenize \"$(cat %s)\" > %s",
+                     workspace_dir, temp_content_file, output_filepath);
+            system(command);
+        } else {
+            printf("  警告: 一時ファイルの作成に失敗しました\n");
+            return 0;
+        }
     }
     
     // 一時ファイルを削除
