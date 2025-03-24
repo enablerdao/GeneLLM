@@ -161,7 +161,8 @@ int fetch_word_vectors_from_web(const char* url, VectorDB* db, int max_words) {
             char* line = strtok(chunk.data, "\n");
             while (line && (max_words <= 0 || word_count < max_words)) {
                 // 単語を取得（この例では行全体を単語として扱う）
-                char* word = line;
+                // 変数は使用されていないのでコメントアウト
+                // char* word = line;
                 
                 // 単語からベクトルを生成（この例ではランダムベクトルを生成）
                 float vector[VECTOR_DIM];

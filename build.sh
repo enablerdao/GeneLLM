@@ -5,6 +5,7 @@ mkdir -p bin
 mkdir -p data/knowledge_base
 mkdir -p data/models
 mkdir -p data/vector_db
+mkdir -p logs
 
 # Build main program
 echo "Building main program..."
@@ -15,20 +16,26 @@ cp gllm bin/main
 # Build individual modules
 echo "Building individual modules..."
 
-# Syntax analyzer
-gcc -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c -lmecab
+# Check if files exist before building
+if [ -f src/analyzers/simple_analyzer.c ]; then
+    gcc -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c -lmecab
+fi
 
-# DNA compressor
-gcc -Wall -Wextra -std=c99 -o bin/dna_compressor src/compressors/dna_compressor.c
+if [ -f src/compressors/dna_compressor.c ]; then
+    gcc -Wall -Wextra -std=c99 -o bin/dna_compressor src/compressors/dna_compressor.c
+fi
 
-# Vector search
-gcc -Wall -Wextra -std=c99 -o bin/vector_search src/vector_search/vector_search.c -lm
+if [ -f src/vector_search/vector_search.c ]; then
+    gcc -Wall -Wextra -std=c99 -o bin/vector_search src/vector_search/vector_search.c -lm
+fi
 
-# Graph generator
-gcc -Wall -Wextra -std=c99 -o bin/graph_generator src/generators/graph_generator.c
+if [ -f src/generators/graph_generator.c ]; then
+    gcc -Wall -Wextra -std=c99 -o bin/graph_generator src/generators/graph_generator.c
+fi
 
-# Router model
-gcc -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c -lmecab
+if [ -f src/routers/router_model.c ]; then
+    gcc -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c -lmecab
+fi
 
 echo "Build completed."
 echo "To run: ./gllm [options]"
