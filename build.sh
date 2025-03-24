@@ -22,9 +22,13 @@ echo "検出されたOS: $OS"
 MECAB_CONFIG_PATH=""
 MECAB_INCLUDE_PATH=""
 MECAB_LIB_PATH=""
+COMPILER="gcc"
 
 if [ "$OS" = "Darwin" ]; then
     echo "macOSを検出しました"
+    # macOSではclangを使用
+    COMPILER="clang"
+    
     # Homebrewでインストールされたmecab-configを探す
     if [ -x "$(command -v mecab-config)" ]; then
         MECAB_CONFIG_PATH=$(command -v mecab-config)
@@ -51,6 +55,10 @@ if [ "$OS" = "Darwin" ]; then
     # コンパイルオプションを設定
     CFLAGS="-I$MECAB_INCLUDE_PATH"
     LDFLAGS="-L$MECAB_LIB_PATH"
+    
+    # macOS特有のフラグを追加
+    CFLAGS="$CFLAGS -arch $(uname -m)"
+    LDFLAGS="$LDFLAGS -arch $(uname -m)"
 elif [ "$OS" = "Linux" ]; then
     echo "Linuxを検出しました"
     # Linuxの場合は通常のパスを使用
@@ -68,20 +76,20 @@ echo "GeneLLMをビルドしています..."
 # src_newディレクトリが存在する場合は新しいソースを使用
 if [ -d "src_new" ]; then
     echo "新しいソースコードを使用してビルドします..."
-    gcc $CFLAGS -Wall -Wextra -std=c99 -o gllm src_new/main_simple.c src_new/include/vector_db.c src_new/vector_search/vector_search.c src_new/vector_search/vector_search_global.c src_new/include/word_loader/word_loader.c $LDFLAGS -lmecab -lm -lcurl
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src_new/main_simple.c src_new/include/vector_db.c src_new/vector_search/vector_search.c src_new/vector_search/vector_search_global.c src_new/include/word_loader/word_loader.c $LDFLAGS -lmecab -lm -lcurl
 else
     # 従来のソースコードを使用
     echo "従来のソースコードを使用してビルドします..."
     # vector_db.cが存在する場合は含める
     if [ -f "src/include/vector_db.c" ]; then
-        gcc $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c src/include/vector_db.c $LDFLAGS -lmecab -lm -lcurl
+        $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c src/include/vector_db.c $LDFLAGS -lmecab -lm -lcurl
     else
         # vector_search_global.cが存在する場合は含める
         if [ -f "src/vector_search/vector_search_global.c" ]; then
-            gcc $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/vector_search/vector_search_global.c src/include/word_loader.c $LDFLAGS -lmecab -lm -lcurl
+            $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/vector_search/vector_search_global.c src/include/word_loader.c $LDFLAGS -lmecab -lm -lcurl
         else
             # 基本的なビルド
-            gcc $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c $LDFLAGS -lmecab -lm -lcurl
+            $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c $LDFLAGS -lmecab -lm -lcurl
         fi
     fi
 fi

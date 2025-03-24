@@ -148,6 +148,7 @@ fi
 
 # メインプログラムをビルド
 echo "メインプログラムをビルドしています..."
+echo "Building main program..."
 
 # ビルドスクリプトが存在する場合はそれを使用
 if [ -f "build.sh" ]; then
@@ -157,8 +158,12 @@ else
     # macOSの場合はMeCabのパスを検出
     MECAB_CFLAGS=""
     MECAB_LDFLAGS=""
+    COMPILER="gcc"
     
     if [[ "$(uname -s)" == "Darwin" ]]; then
+        # macOSではclangを使用
+        COMPILER="clang"
+        
         # mecab-configが利用可能か確認
         if command -v mecab-config &> /dev/null; then
             MECAB_CFLAGS="-I$(mecab-config --inc-dir)"
@@ -171,15 +176,22 @@ else
             MECAB_CFLAGS="-I/opt/homebrew/include"
             MECAB_LDFLAGS="-L/opt/homebrew/lib"
         fi
+        
+        # macOS特有のフラグを追加
+        CFLAGS="$MECAB_CFLAGS -arch $(uname -m)"
+        LDFLAGS="$MECAB_LDFLAGS -arch $(uname -m)"
+    else
+        CFLAGS="$MECAB_CFLAGS"
+        LDFLAGS="$MECAB_LDFLAGS"
     fi
     
     # src_newディレクトリが存在する場合は新しいソースを使用
     if [ -d "src_new" ]; then
         echo "新しいソースコードを使用してビルドします..."
-        gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o gllm src_new/main_simple.c src_new/include/vector_db.c src_new/vector_search/vector_search.c src_new/vector_search/vector_search_global.c src_new/include/word_loader/word_loader.c $MECAB_LDFLAGS -lmecab -lm -lcurl
+        $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src_new/main_simple.c src_new/include/vector_db.c src_new/vector_search/vector_search.c src_new/vector_search/vector_search_global.c src_new/include/word_loader/word_loader.c $LDFLAGS -lmecab -lm -lcurl
     else
         # 従来のソースコードを使用
-        gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c $MECAB_LDFLAGS -lmecab -lm -lcurl
+        $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c src/include/word_loader.c $LDFLAGS -lmecab -lm -lcurl
     fi
 fi
 
@@ -190,12 +202,17 @@ fi
 
 # 個別モジュールをビルド
 echo "個別モジュールをビルドしています..."
+echo "Building individual modules..."
 
 # macOSの場合はMeCabのパスを検出
 MECAB_CFLAGS=""
 MECAB_LDFLAGS=""
+COMPILER="gcc"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
+    # macOSではclangを使用
+    COMPILER="clang"
+    
     # mecab-configが利用可能か確認
     if command -v mecab-config &> /dev/null; then
         MECAB_CFLAGS="-I$(mecab-config --inc-dir)"
@@ -208,28 +225,38 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
         MECAB_CFLAGS="-I/opt/homebrew/include"
         MECAB_LDFLAGS="-L/opt/homebrew/lib"
     fi
+    
+    # macOS特有のフラグを追加
+    CFLAGS="$MECAB_CFLAGS -arch $(uname -m)"
+    LDFLAGS="$MECAB_LDFLAGS -arch $(uname -m)"
+else
+    CFLAGS="$MECAB_CFLAGS"
+    LDFLAGS="$MECAB_LDFLAGS"
 fi
 
 # ファイルが存在する場合のみビルド
 if [ -f src/analyzers/simple_analyzer.c ]; then
-    gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c $MECAB_LDFLAGS -lmecab
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o bin/simple_analyzer src/analyzers/simple_analyzer.c $LDFLAGS -lmecab
 fi
 
 if [ -f src/compressors/dna_compressor.c ]; then
-    gcc -Wall -Wextra -std=c99 -o bin/dna_compressor src/compressors/dna_compressor.c
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o bin/dna_compressor src/compressors/dna_compressor.c $LDFLAGS
 fi
 
 if [ -f src/vector_search/vector_search.c ]; then
-    gcc -Wall -Wextra -std=c99 -o bin/vector_search src/vector_search/vector_search.c -lm
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o bin/vector_search src/vector_search/vector_search.c $LDFLAGS -lm
 fi
 
 if [ -f src/generators/graph_generator.c ]; then
-    gcc -Wall -Wextra -std=c99 -o bin/graph_generator src/generators/graph_generator.c
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o bin/graph_generator src/generators/graph_generator.c $LDFLAGS
 fi
 
 if [ -f src/routers/router_model.c ]; then
-    gcc $MECAB_CFLAGS -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c $MECAB_LDFLAGS -lmecab
+    $COMPILER $CFLAGS -Wall -Wextra -std=c99 -o bin/router_model src/routers/router_model.c $LDFLAGS -lmecab
 fi
+
+echo "Build completed."
+echo "To run: ./gllm [options]"
 
 # 最初の質問を実行
 echo "💬 最初の質問を実行します..."
