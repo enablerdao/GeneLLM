@@ -36,7 +36,7 @@ fi
 echo "トークナイズされたファイルから単語を抽出しています..."
 
 # すべてのトークナイズされたファイルから単語を抽出
-find "$TOKENIZED_DIR" -type f -exec cat {} \; | grep -v "^--" | grep -v "^表層形" | cut -f1 | sort | uniq > "$TEMP_DIR/unique_words.txt"
+find "$TOKENIZED_DIR" -type f -exec cat {} \; | grep -v "^--" | grep -v "^表層形" | grep -v "^テキスト" | grep -v "^-" | cut -f1 | sort | uniq > "$TEMP_DIR/unique_words.txt"
 
 # 単語数を取得
 WORD_COUNT=$(wc -l < "$TEMP_DIR/unique_words.txt")

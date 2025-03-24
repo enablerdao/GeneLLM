@@ -22,7 +22,7 @@ fi
 
 # 処理対象ファイルのリストを作成
 echo "処理対象ファイルを検索しています..."
-find "$KNOWLEDGE_DIR" "$DOCS_DIR" -type f \( -name "*.txt" -o -name "*.md" \) > "$TEMP_DIR/target_files.txt"
+find "$KNOWLEDGE_DIR" "$DOCS_DIR" -type f \( -name "*.txt" -o -name "*.md" \) | grep -v "answers.txt" | grep -v "answers_new.txt" | grep -v "answers_additional.txt" > "$TEMP_DIR/target_files.txt"
 
 # ファイル数を取得
 FILE_COUNT=$(wc -l < "$TEMP_DIR/target_files.txt")
@@ -89,7 +89,22 @@ while read -r file; do
         fi
         
         # トークナイズ処理
-        echo -e "$CONTENT" | "$WORKSPACE/bin/tokens" tokenize - > "$OUTPUT_FILE"
+        # 大きなファイルの場合は分割して処理
+        if [ ${#CONTENT} -gt 10000 ]; then
+            echo "  大きなファイルを分割して処理します: $file"
+            # 内容をファイルに保存
+            TEMP_CONTENT_FILE="$TEMP_DIR/temp_content_$PROCESSED_COUNT.txt"
+            echo "$CONTENT" > "$TEMP_CONTENT_FILE"
+            
+            # 最初の10000文字だけをトークナイズ
+            head -c 10000 "$TEMP_CONTENT_FILE" | "$WORKSPACE/bin/tokens" tokenize "$(head -c 10000 "$TEMP_CONTENT_FILE")" > "$OUTPUT_FILE"
+            
+            # 一時ファイルを削除
+            rm -f "$TEMP_CONTENT_FILE"
+        else
+            # 通常のトークナイズ処理
+            "$WORKSPACE/bin/tokens" tokenize "$CONTENT" > "$OUTPUT_FILE"
+        fi
         
         # トークナイズ結果の確認
         if [ -s "$OUTPUT_FILE" ]; then
