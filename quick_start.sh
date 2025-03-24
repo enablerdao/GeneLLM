@@ -125,8 +125,8 @@ mkdir -p knowledge/base
 mkdir -p knowledge/docs
 mkdir -p knowledge/text/wikipedia
 mkdir -p knowledge/text
-mkdir -p data/models
-mkdir -p data/vector_db
+mkdir -p knowledge/models
+mkdir -p knowledge/vector_db
 mkdir -p logs
 touch knowledge/learning_db.txt
 
