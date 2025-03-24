@@ -2,6 +2,28 @@
 
 # GeneLLM DNA圧縮ツール
 # 使用方法: ./dna.sh [コマンド] [引数]
+#
+# DNAベースの概念圧縮（シンボル化）
+# - 主語(E): Entity - 主体となる名詞
+# - 動詞(C): Concept - 行為や状態を表す動詞
+# - 結果(R): Result - 行為の対象や結果
+#
+# 動詞の活用形:
+# - VERB_FORM_BASIC: 基本形（辞書形）- 食べる
+# - VERB_FORM_MASU: ます形 - 食べます
+# - VERB_FORM_TE: て形 - 食べて
+# - VERB_FORM_TA: た形 - 食べた
+# - VERB_FORM_NAI: ない形 - 食べない
+# - VERB_FORM_PASSIVE: 受身形 - 食べられる
+# - VERB_FORM_CAUSATIVE: 使役形 - 食べさせる
+# - VERB_FORM_POTENTIAL: 可能形 - 食べられる
+# - VERB_FORM_IMPERATIVE: 命令形 - 食べろ/食べよ
+# - VERB_FORM_VOLITIONAL: 意志形 - 食べよう
+#
+# 動詞の種類:
+# - VERB_TYPE_GODAN: 五段動詞 - 書く、読む
+# - VERB_TYPE_ICHIDAN: 一段動詞 - 食べる、見る
+# - VERB_TYPE_IRREGULAR: 不規則動詞 - する、来る
 
 WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd)"
 SCRIPTS_DIR="$WORKSPACE_DIR/scripts"
@@ -184,16 +206,147 @@ show_help() {
 コマンド:
   compress "テキスト"       テキストをDNAコードに圧縮
   decompress "DNAコード"    DNAコードからテキストを復元
+  verb-info "動詞"          動詞の活用形と種類を表示
   help                     このヘルプを表示
 
 引数:
   "テキスト"               圧縮するテキスト
   "DNAコード"              復元するDNAコード（例: E00C01R02）
+  "動詞"                   活用情報を表示する動詞
 
 例:
   ./dna.sh compress "猫が魚を食べる"
   ./dna.sh decompress "E00C01R02"
+  ./dna.sh verb-info "食べる"
+
+DNAコードの形式:
+  E00 - 主語(Entity)のID
+  C00 - 動詞(Concept)のID
+  R00 - 結果(Result)のID
 EOF
+}
+
+# 動詞の活用形と種類を表示
+show_verb_info() {
+    local verb="$1"
+    
+    if [ -z "$verb" ]; then
+        echo "エラー: 動詞が指定されていません"
+        exit 1
+    fi
+    
+    echo "動詞「$verb」の情報："
+    echo "----------------------------------------"
+    
+    # 動詞の種類を判定（簡易版）
+    local verb_type="不明"
+    if [[ "$verb" == *"する" ]]; then
+        verb_type="不規則動詞 (VERB_TYPE_IRREGULAR)"
+    elif [[ "$verb" == *"来る" ]] || [[ "$verb" == *"くる" ]]; then
+        verb_type="不規則動詞 (VERB_TYPE_IRREGULAR)"
+    elif [[ "$verb" == *"る" ]]; then
+        # 一段動詞か五段動詞かを判定（簡易版）
+        local stem="${verb%る}"
+        local last_char="${stem: -1}"
+        if [[ "$last_char" =~ [いえ] ]]; then
+            # 一段動詞の例外チェック
+            if [[ "$verb" == "入る" ]] || [[ "$verb" == "切る" ]] || [[ "$verb" == "走る" ]] || 
+               [[ "$verb" == "知る" ]] || [[ "$verb" == "散る" ]] || [[ "$verb" == "滑る" ]] || 
+               [[ "$verb" == "蹴る" ]] || [[ "$verb" == "練る" ]]; then
+                verb_type="五段動詞 (VERB_TYPE_GODAN)"
+            else
+                verb_type="一段動詞 (VERB_TYPE_ICHIDAN)"
+            fi
+        else
+            verb_type="五段動詞 (VERB_TYPE_GODAN)"
+        fi
+    else
+        verb_type="五段動詞 (VERB_TYPE_GODAN)"
+    fi
+    
+    echo "動詞の種類: $verb_type"
+    echo ""
+    echo "活用形:"
+    
+    # 基本形
+    echo "- 基本形 (VERB_FORM_BASIC): $verb"
+    
+    # ます形
+    local masu_form=""
+    if [[ "$verb_type" == *"一段"* ]]; then
+        masu_form="${verb%る}ます"
+    elif [[ "$verb_type" == *"五段"* ]]; then
+        if [[ "$verb" == *"う" ]]; then
+            masu_form="${verb%う}います"
+        elif [[ "$verb" == *"く" ]]; then
+            masu_form="${verb%く}きます"
+        elif [[ "$verb" == *"ぐ" ]]; then
+            masu_form="${verb%ぐ}ぎます"
+        elif [[ "$verb" == *"す" ]]; then
+            masu_form="${verb%す}します"
+        elif [[ "$verb" == *"つ" ]]; then
+            masu_form="${verb%つ}ちます"
+        elif [[ "$verb" == *"ぬ" ]]; then
+            masu_form="${verb%ぬ}にます"
+        elif [[ "$verb" == *"ぶ" ]]; then
+            masu_form="${verb%ぶ}びます"
+        elif [[ "$verb" == *"む" ]]; then
+            masu_form="${verb%む}みます"
+        elif [[ "$verb" == *"る" ]]; then
+            masu_form="${verb%る}ります"
+        fi
+    elif [[ "$verb" == "する" ]]; then
+        masu_form="します"
+    elif [[ "$verb" == "来る" ]] || [[ "$verb" == "くる" ]]; then
+        masu_form="きます"
+    fi
+    echo "- ます形 (VERB_FORM_MASU): $masu_form"
+    
+    # て形
+    local te_form=""
+    if [[ "$verb_type" == *"一段"* ]]; then
+        te_form="${verb%る}て"
+    elif [[ "$verb_type" == *"五段"* ]]; then
+        if [[ "$verb" == *"う" ]] || [[ "$verb" == *"つ" ]] || [[ "$verb" == *"る" ]]; then
+            te_form="${verb%?}って"
+        elif [[ "$verb" == *"く" ]]; then
+            te_form="${verb%く}いて"
+        elif [[ "$verb" == *"ぐ" ]]; then
+            te_form="${verb%ぐ}いで"
+        elif [[ "$verb" == *"す" ]]; then
+            te_form="${verb%す}して"
+        elif [[ "$verb" == *"ぬ" ]] || [[ "$verb" == *"ぶ" ]] || [[ "$verb" == *"む" ]]; then
+            te_form="${verb%?}んで"
+        fi
+    elif [[ "$verb" == "する" ]]; then
+        te_form="して"
+    elif [[ "$verb" == "来る" ]] || [[ "$verb" == "くる" ]]; then
+        te_form="きて"
+    fi
+    echo "- て形 (VERB_FORM_TE): $te_form"
+    
+    # た形
+    local ta_form=""
+    if [[ "$verb_type" == *"一段"* ]]; then
+        ta_form="${verb%る}た"
+    elif [[ "$verb_type" == *"五段"* ]]; then
+        if [[ "$verb" == *"う" ]] || [[ "$verb" == *"つ" ]] || [[ "$verb" == *"る" ]]; then
+            ta_form="${verb%?}った"
+        elif [[ "$verb" == *"く" ]]; then
+            ta_form="${verb%く}いた"
+        elif [[ "$verb" == *"ぐ" ]]; then
+            ta_form="${verb%ぐ}いだ"
+        elif [[ "$verb" == *"す" ]]; then
+            ta_form="${verb%す}した"
+        elif [[ "$verb" == *"ぬ" ]] || [[ "$verb" == *"ぶ" ]] || [[ "$verb" == *"む" ]]; then
+            ta_form="${verb%?}んだ"
+        fi
+    elif [[ "$verb" == "する" ]]; then
+        ta_form="した"
+    elif [[ "$verb" == "来る" ]] || [[ "$verb" == "くる" ]]; then
+        ta_form="きた"
+    fi
+    echo "- た形 (VERB_FORM_TA): $ta_form"
 }
 
 # メイン処理
@@ -221,6 +374,15 @@ case "$COMMAND" in
             decompress_dna "$1"
         else
             echo "エラー: DNAコードが指定されていません"
+            show_help
+            exit 1
+        fi
+        ;;
+    verb-info)
+        if [ $# -ge 1 ]; then
+            show_verb_info "$1"
+        else
+            echo "エラー: 動詞が指定されていません"
             show_help
             exit 1
         fi

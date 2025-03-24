@@ -17,6 +17,7 @@ show_help() {
   tokenize "テキスト"         テキストをトークナイズして表示
   dna-compress "テキスト"     テキストをDNAコードに圧縮
   dna-decompress "DNAコード"  DNAコードからテキストを復元
+  verb-info "動詞"            動詞の活用形と種類を表示
   help                       このヘルプを表示
 
 引数:
@@ -24,6 +25,7 @@ show_help() {
   offset                     表示を開始する位置 (デフォルト: 0)
   "テキスト"                 トークナイズまたは圧縮するテキスト
   "DNAコード"                復元するDNAコード（例: E00C01R02）
+  "動詞"                     活用情報を表示する動詞
 
 例:
   ./genellm_tools.sh vectors              # ベクトルデータを表示（デフォルト10件）
@@ -34,6 +36,7 @@ show_help() {
   ./genellm_tools.sh tokenize "こんにちは" # テキストをトークナイズして表示
   ./genellm_tools.sh dna-compress "猫が魚を食べる"  # テキストをDNAコードに圧縮
   ./genellm_tools.sh dna-decompress "E00C00R00"    # DNAコードからテキストを復元
+  ./genellm_tools.sh verb-info "食べる"   # 動詞の活用形と種類を表示
 EOF
 }
 
@@ -62,6 +65,9 @@ case "$COMMAND" in
         ;;
     dna-decompress)
         "$SCRIPTS_DIR/dna.sh" decompress "$@"
+        ;;
+    verb-info)
+        "$SCRIPTS_DIR/dna.sh" verb-info "$@"
         ;;
     help|--help|-h)
         show_help
