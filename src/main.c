@@ -1890,7 +1890,7 @@ int main(int argc, char* argv[]) {
     init_global_vector_db_impl();
     
     // 学習データベースを初期化
-    learning_db = learning_db_init("knowledge/learning_db.txt");
+    learning_db = learning_db_init("data/learning_db.txt");
     
     // 知識ベースを初期化（既存のデータを保持）
     // system("rm -rf data/knowledge_base/*"); // 既存のナレッジベースを削除しないように変更

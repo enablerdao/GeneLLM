@@ -124,11 +124,10 @@ mkdir -p bin
 mkdir -p knowledge/base
 mkdir -p knowledge/docs
 mkdir -p knowledge/text/wikipedia
-mkdir -p knowledge/text
-mkdir -p knowledge/models
-mkdir -p knowledge/vector_db
+mkdir -p data/models
+mkdir -p data/vector_db
 mkdir -p logs
-touch knowledge/learning_db.txt
+touch data/learning_db.txt
 
 # 日本語単語リストのサンプルを作成（存在しない場合）
 if [ ! -f knowledge/text/japanese_words.txt ]; then
