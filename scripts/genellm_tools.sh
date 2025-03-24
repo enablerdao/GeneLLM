@@ -15,12 +15,15 @@ show_help() {
   vectors [limit] [offset]    単語ベクトルデータを表示
   words [limit] [offset]      単語リストを表示
   tokenize "テキスト"         テキストをトークナイズして表示
+  dna-compress "テキスト"     テキストをDNAコードに圧縮
+  dna-decompress "DNAコード"  DNAコードからテキストを復元
   help                       このヘルプを表示
 
 引数:
   limit                      表示する単語の数 (デフォルト: 10)
   offset                     表示を開始する位置 (デフォルト: 0)
-  "テキスト"                 トークナイズするテキスト
+  "テキスト"                 トークナイズまたは圧縮するテキスト
+  "DNAコード"                復元するDNAコード（例: E00C01R02）
 
 例:
   ./genellm_tools.sh vectors              # ベクトルデータを表示（デフォルト10件）
@@ -29,6 +32,8 @@ show_help() {
   ./genellm_tools.sh words                # 単語リストを表示（デフォルト10件）
   ./genellm_tools.sh words 20             # 単語リストを20件表示
   ./genellm_tools.sh tokenize "こんにちは" # テキストをトークナイズして表示
+  ./genellm_tools.sh dna-compress "猫が魚を食べる"  # テキストをDNAコードに圧縮
+  ./genellm_tools.sh dna-decompress "E00C00R00"    # DNAコードからテキストを復元
 EOF
 }
 
@@ -51,6 +56,12 @@ case "$COMMAND" in
         ;;
     tokenize)
         "$SCRIPTS_DIR/tokens.sh" tokenize "$@"
+        ;;
+    dna-compress)
+        "$SCRIPTS_DIR/dna.sh" compress "$@"
+        ;;
+    dna-decompress)
+        "$SCRIPTS_DIR/dna.sh" decompress "$@"
         ;;
     help|--help|-h)
         show_help
