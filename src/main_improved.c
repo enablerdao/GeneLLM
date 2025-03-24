@@ -94,6 +94,7 @@ int main(int argc, char* argv[]) {
                 printf("デバッグ情報: 類似度スコア: %.4f\n", similarity_score);
                 if (similarity_score > 0.5) {
                     printf("デバッグ情報: 十分な類似度があります\n");
+                    printf("デバッグ情報: マッチした質問: %s\n", get_matched_question());
                 } else {
                     printf("デバッグ情報: 類似度が低いため回答が見つかりません\n");
                 }
@@ -132,6 +133,7 @@ int main(int argc, char* argv[]) {
         printf("デバッグ情報: 類似度スコア: %.4f\n", similarity_score);
         if (similarity_score > 0.5) {
             printf("デバッグ情報: 十分な類似度があります\n");
+            printf("デバッグ情報: マッチした質問: %s\n", get_matched_question());
         } else {
             printf("デバッグ情報: 類似度が低いため回答が見つかりません\n");
         }

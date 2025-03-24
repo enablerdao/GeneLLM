@@ -170,16 +170,19 @@ double sentence_similarity(const char* sentence1, const char* sentence2) {
     return 0.0;
 }
 
-// 質問に対する回答を検索し、類似度スコアも返す
+// 質問に対する回答を検索し、類似度スコアと選択された質問も返す
 const char* find_answer_with_score(const char* question, double* score) {
     int i;
     double best_score = 0.0;
     int best_match = -1;
+    static char matched_question[MAX_QUESTION_LENGTH];
     
     // 完全一致を検索
     for (i = 0; i < answer_db_size; i++) {
         if (strcmp(answer_db[i].question, question) == 0) {
             if (score) *score = 1.0; // 完全一致は最高スコア
+            strncpy(matched_question, answer_db[i].question, MAX_QUESTION_LENGTH - 1);
+            matched_question[MAX_QUESTION_LENGTH - 1] = '\0';
             return answer_db[i].answer;
         }
     }
@@ -199,11 +202,20 @@ const char* find_answer_with_score(const char* question, double* score) {
     
     // 一定以上の類似度がある場合のみ回答を返す
     if (best_score > 0.5 && best_match >= 0) {
+        strncpy(matched_question, answer_db[best_match].question, MAX_QUESTION_LENGTH - 1);
+        matched_question[MAX_QUESTION_LENGTH - 1] = '\0';
         return answer_db[best_match].answer;
     }
     
     // 回答が見つからない場合
+    matched_question[0] = '\0';
     return NULL;
+}
+
+// マッチした質問を取得する
+const char* get_matched_question() {
+    static char matched_question[MAX_QUESTION_LENGTH];
+    return matched_question;
 }
 
 // 質問に対する回答を検索する
