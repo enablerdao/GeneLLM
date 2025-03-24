@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <math.h>
+#include <strings.h>
 
 #define MAX_ANSWERS 100
 #define MAX_QUESTION_LENGTH 256
@@ -80,40 +82,78 @@ void init_answer_db() {
     printf("回答データベースを初期化しました（%d件の回答）\n", answer_db_size);
 }
 
-// 単語の類似度を計算する簡易関数
+// 単語の類似度を計算する簡易関数（改良版）
 double word_similarity(const char* word1, const char* word2) {
     int len1 = strlen(word1);
     int len2 = strlen(word2);
+    
+    // 同じ単語なら最高スコア
+    if (strcasecmp(word1, word2) == 0) {
+        return 1.0;
+    }
     
     // 長さが大きく異なる場合は類似度を下げる
     double len_ratio = (double)len1 / len2;
     if (len_ratio > 1.0) len_ratio = 1.0 / len_ratio;
     
-    // 共通の文字数をカウント
+    // 共通の文字数をカウント（位置も考慮）
     int common_chars = 0;
+    int position_matches = 0;
+    
     for (int i = 0; i < len1; i++) {
         for (int j = 0; j < len2; j++) {
             if (tolower(word1[i]) == tolower(word2[j])) {
                 common_chars++;
+                // 同じ相対位置にある文字は高いスコア
+                if (fabs((double)i / len1 - (double)j / len2) < 0.3) {
+                    position_matches++;
+                }
                 break;
             }
         }
     }
     
-    // 類似度を計算（共通文字の割合と長さの比率を考慮）
+    // 先頭文字が一致する場合はボーナス
+    double prefix_bonus = (tolower(word1[0]) == tolower(word2[0])) ? 0.2 : 0.0;
+    
+    // 類似度を計算（共通文字の割合、位置の一致、長さの比率を考慮）
     double char_ratio = (double)common_chars / len1;
-    return char_ratio * 0.7 + len_ratio * 0.3;
+    double position_ratio = (len1 > 0) ? (double)position_matches / len1 : 0;
+    
+    return char_ratio * 0.4 + position_ratio * 0.3 + len_ratio * 0.1 + prefix_bonus;
 }
 
-// 文章の類似度を計算する
+// 文章の類似度を計算する（改良版）
 double sentence_similarity(const char* sentence1, const char* sentence2) {
-    // 簡易的な実装: 文字列の部分一致と長さの比率で類似度を計算
-    if (strstr(sentence1, sentence2) != NULL) {
+    // 完全一致の場合
+    if (strcasecmp(sentence1, sentence2) == 0) {
+        return 1.0;
+    }
+    
+    // 部分文字列の場合（大文字小文字を区別しない）
+    char s1_lower[MAX_QUESTION_LENGTH];
+    char s2_lower[MAX_QUESTION_LENGTH];
+    
+    strncpy(s1_lower, sentence1, MAX_QUESTION_LENGTH - 1);
+    strncpy(s2_lower, sentence2, MAX_QUESTION_LENGTH - 1);
+    s1_lower[MAX_QUESTION_LENGTH - 1] = '\0';
+    s2_lower[MAX_QUESTION_LENGTH - 1] = '\0';
+    
+    // 小文字に変換
+    for (int i = 0; s1_lower[i]; i++) {
+        s1_lower[i] = tolower(s1_lower[i]);
+    }
+    
+    for (int i = 0; s2_lower[i]; i++) {
+        s2_lower[i] = tolower(s2_lower[i]);
+    }
+    
+    if (strstr(s1_lower, s2_lower) != NULL) {
         double len_ratio = (double)strlen(sentence2) / strlen(sentence1);
         return 0.7 + len_ratio * 0.3; // 部分一致の場合は高いスコア
     }
     
-    if (strstr(sentence2, sentence1) != NULL) {
+    if (strstr(s2_lower, s1_lower) != NULL) {
         double len_ratio = (double)strlen(sentence1) / strlen(sentence2);
         return 0.7 + len_ratio * 0.3; // 部分一致の場合は高いスコア
     }
@@ -134,13 +174,18 @@ double sentence_similarity(const char* sentence1, const char* sentence2) {
     
     char* word = strtok(s1_copy, " \t\n,.;:!?");
     while (word != NULL && word_count1 < 100) {
-        words1[word_count1++] = word;
+        // 短すぎる単語（助詞など）は重要度を下げる
+        if (strlen(word) > 1) {
+            words1[word_count1++] = word;
+        }
         word = strtok(NULL, " \t\n,.;:!?");
     }
     
     word = strtok(s2_copy, " \t\n,.;:!?");
     while (word != NULL && word_count2 < 100) {
-        words2[word_count2++] = word;
+        if (strlen(word) > 1) {
+            words2[word_count2++] = word;
+        }
         word = strtok(NULL, " \t\n,.;:!?");
     }
     
@@ -148,23 +193,44 @@ double sentence_similarity(const char* sentence1, const char* sentence2) {
     double total_similarity = 0.0;
     int matches = 0;
     
+    // 各単語の最良マッチを見つける
     for (int i = 0; i < word_count1; i++) {
         double best_word_sim = 0.0;
+        int best_match_idx = -1;
+        
         for (int j = 0; j < word_count2; j++) {
             double sim = word_similarity(words1[i], words2[j]);
             if (sim > best_word_sim) {
                 best_word_sim = sim;
+                best_match_idx = j;
             }
         }
-        if (best_word_sim > 0.5) { // 一定以上の類似度がある場合のみカウント
-            total_similarity += best_word_sim;
+        
+        // 一定以上の類似度がある場合のみカウント
+        if (best_word_sim > 0.6) {
+            // 単語の長さに応じて重み付け（長い単語ほど重要）
+            double word_weight = 0.5 + 0.5 * fmin(1.0, strlen(words1[i]) / 10.0);
+            total_similarity += best_word_sim * word_weight;
             matches++;
+            
+            // 単語の位置も考慮（近い位置にある単語ほど重要）
+            if (best_match_idx >= 0) {
+                double position_ratio = 1.0 - fabs((double)i / word_count1 - (double)best_match_idx / word_count2);
+                total_similarity += position_ratio * 0.2;
+            }
         }
     }
     
     // 類似度のスコアを計算
     if (matches > 0) {
-        return (total_similarity / matches) * ((double)matches / word_count1);
+        // マッチした単語の割合と平均類似度を考慮
+        double match_ratio = (double)matches / word_count1;
+        double avg_similarity = total_similarity / matches;
+        
+        // 短い質問に対するボーナス
+        double length_bonus = (word_count1 < 5) ? 0.1 : 0.0;
+        
+        return avg_similarity * 0.6 + match_ratio * 0.4 + length_bonus;
     }
     
     return 0.0;
