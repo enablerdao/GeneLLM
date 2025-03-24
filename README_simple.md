@@ -18,6 +18,15 @@ curl -sSL https://raw.githubusercontent.com/enablerdao/GeneLLM/main/quick_start.
 - [macOS版](https://github.com/enablerdao/GeneLLM/releases/latest/download/gllm-macos.tar.gz)
 - [Windows版](https://github.com/enablerdao/GeneLLM/releases/latest/download/gllm-windows.zip)
 
+## 📊 ベンチマーク
+
+GeneLLMの性能を評価するためのベンチマークツールが用意されています：
+
+```bash
+# ベンチマークを実行し、グラフを生成
+./benchmark/run_all.sh
+```
+
 ## 実装コンポーネント
 
 以下の要素を全てC言語で実装します：
