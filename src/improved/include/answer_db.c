@@ -239,6 +239,46 @@ double sentence_similarity(const char* sentence1, const char* sentence2) {
     return 0.0;
 }
 
+// 特定のキーワードに基づいて質問をマッチングする
+int find_keyword_match(const char* question, const char* keyword) {
+    char question_lower[MAX_QUESTION_LENGTH];
+    strncpy(question_lower, question, MAX_QUESTION_LENGTH - 1);
+    question_lower[MAX_QUESTION_LENGTH - 1] = '\0';
+    
+    // 小文字に変換
+    for (int i = 0; question_lower[i]; i++) {
+        question_lower[i] = tolower(question_lower[i]);
+    }
+    
+    // キーワードを小文字に変換
+    char keyword_lower[MAX_QUESTION_LENGTH];
+    strncpy(keyword_lower, keyword, MAX_QUESTION_LENGTH - 1);
+    keyword_lower[MAX_QUESTION_LENGTH - 1] = '\0';
+    
+    for (int i = 0; keyword_lower[i]; i++) {
+        keyword_lower[i] = tolower(keyword_lower[i]);
+    }
+    
+    // キーワードを含む質問を検索
+    if (strstr(question_lower, keyword_lower) != NULL) {
+        for (int i = 0; i < answer_db_size; i++) {
+            char db_question_lower[MAX_QUESTION_LENGTH];
+            strncpy(db_question_lower, answer_db[i].question, MAX_QUESTION_LENGTH - 1);
+            db_question_lower[MAX_QUESTION_LENGTH - 1] = '\0';
+            
+            for (int j = 0; db_question_lower[j]; j++) {
+                db_question_lower[j] = tolower(db_question_lower[j]);
+            }
+            
+            if (strstr(db_question_lower, keyword_lower) != NULL) {
+                return i;
+            }
+        }
+    }
+    
+    return -1;
+}
+
 // 質問に対する回答を検索し、類似度スコアと選択された質問も返す
 const char* find_answer_with_score(const char* question, double* score) {
     int i;
@@ -246,15 +286,28 @@ const char* find_answer_with_score(const char* question, double* score) {
     int best_match = -1;
     
     // 特定のキーワードに基づく優先マッチング
-    if (strstr(question, "ポインタ") != NULL) {
-        // ポインタに関する質問の場合、特定の回答を優先
-        for (i = 0; i < answer_db_size; i++) {
-            if (strstr(answer_db[i].question, "ポインタ") != NULL) {
-                if (score) *score = 0.95; // 高いスコアを設定
-                strncpy(matched_question, answer_db[i].question, MAX_QUESTION_LENGTH - 1);
-                matched_question[MAX_QUESTION_LENGTH - 1] = '\0';
-                return answer_db[i].answer;
-            }
+    struct {
+        const char* keyword;
+        double match_score;
+    } keywords[] = {
+        {"ポインタ", 0.95},
+        {"構造体", 0.95},
+        {"配列", 0.95},
+        {"メモリ", 0.95},
+        {"関数", 0.95},
+        {"ファイル", 0.95},
+        {"エラー", 0.95},
+        {"デバッグ", 0.95},
+        {NULL, 0.0}
+    };
+    
+    for (i = 0; keywords[i].keyword != NULL; i++) {
+        int match_idx = find_keyword_match(question, keywords[i].keyword);
+        if (match_idx >= 0) {
+            if (score) *score = keywords[i].match_score;
+            strncpy(matched_question, answer_db[match_idx].question, MAX_QUESTION_LENGTH - 1);
+            matched_question[MAX_QUESTION_LENGTH - 1] = '\0';
+            return answer_db[match_idx].answer;
         }
     }
 

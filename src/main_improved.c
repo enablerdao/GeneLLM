@@ -8,6 +8,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <curl/curl.h>
+
+// グローバルベクトルデータベースの初期化と取得のための関数宣言
+void init_global_vector_db(void);
+int get_global_vector_db_size(void);
 #include <sys/stat.h>
 
 #include "include/vector_db.h"
