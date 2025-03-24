@@ -15,6 +15,27 @@ typedef struct {
 static QAPair answer_db[MAX_ANSWERS];
 static int answer_db_size = 0;
 
+// 文字列内のエスケープシーケンスを実際の文字に変換する
+void unescape_string(char *str) {
+    char *src = str;
+    char *dst = str;
+    char c;
+    
+    while ((c = *src++) != '\0') {
+        if (c == '\\' && *src != '\0') {
+            switch (*src) {
+                case 'n': c = '\n'; src++; break;
+                case 't': c = '\t'; src++; break;
+                case 'r': c = '\r'; src++; break;
+                case '\\': c = '\\'; src++; break;
+                // 他のエスケープシーケンスも必要に応じて追加
+            }
+        }
+        *dst++ = c;
+    }
+    *dst = '\0';
+}
+
 // 回答データベースを初期化する
 void init_answer_db() {
     FILE *fp;
@@ -44,6 +65,9 @@ void init_answer_db() {
             
             strncpy(answer_db[answer_db_size].answer, answer, MAX_ANSWER_LENGTH - 1);
             answer_db[answer_db_size].answer[MAX_ANSWER_LENGTH - 1] = '\0';
+            
+            // エスケープシーケンスを変換
+            unescape_string(answer_db[answer_db_size].answer);
             
             answer_db_size++;
         }
