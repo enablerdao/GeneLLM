@@ -1,0 +1,130 @@
+name: Build and Release Binaries
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmecab-dev mecab mecab-ipadic-utf8 libcurl4-openssl-dev
+      
+      - name: Build
+        run: |
+          chmod +x build.sh
+          ./build.sh
+      
+      - name: Package
+        run: |
+          mkdir -p release
+          cp gllm release/gllm-linux
+          cp -r data release/data
+          cp -r logs release/logs
+          tar -czvf gllm-linux.tar.gz -C release .
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gllm-linux
+          path: gllm-linux.tar.gz
+  
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install dependencies
+        run: |
+          brew install mecab mecab-ipadic curl
+      
+      - name: Build
+        run: |
+          chmod +x build.sh
+          ./build.sh
+      
+      - name: Package
+        run: |
+          mkdir -p release
+          cp gllm release/gllm-macos
+          cp -r data release/data
+          cp -r logs release/logs
+          tar -czvf gllm-macos.tar.gz -C release .
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gllm-macos
+          path: gllm-macos.tar.gz
+  
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+      
+      - name: Install dependencies
+        run: |
+          # Windows用のMeCabをダウンロードしてインストール
+          curl -L -o mecab-0.996-x64.exe "https://github.com/ikegami-yukino/mecab/releases/download/v0.996.2/mecab-0.996-x64.exe"
+          ./mecab-0.996-x64.exe /SILENT
+          
+          # libcurlをダウンロード
+          curl -L -o curl-7.88.1-win64-mingw.zip "https://curl.se/windows/dl-7.88.1/curl-7.88.1-win64-mingw.zip"
+          7z x curl-7.88.1-win64-mingw.zip -o"curl"
+      
+      - name: Build
+        run: |
+          # Windows用のビルドコマンド
+          gcc -Wall -Wextra -std=c99 -o gllm.exe src/main.c src/vector_search/vector_search.c src/include/word_loader.c -I"C:/Program Files/MeCab/sdk" -L"C:/Program Files/MeCab/sdk" -L"./curl/lib" -lmecab -lcurl -lm
+      
+      - name: Package
+        run: |
+          mkdir -p release
+          cp gllm.exe release/
+          cp -r data release/data
+          cp -r logs release/logs
+          # 必要なDLLをコピー
+          cp "C:/Program Files/MeCab/bin/libmecab.dll" release/
+          cp "./curl/bin/libcurl.dll" release/
+          7z a -tzip gllm-windows.zip ./release/*
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gllm-windows
+          path: gllm-windows.zip
+  
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            gllm-linux/gllm-linux.tar.gz
+            gllm-macos/gllm-macos.tar.gz
+            gllm-windows/gllm-windows.zip
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
