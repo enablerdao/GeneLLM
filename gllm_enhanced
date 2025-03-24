@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# GeneLLM拡張版 - DNA検索フォールバック機能付き
+# 使用方法: ./gllm_enhanced [-d] [-i] "質問"
+
+# スクリプトのディレクトリを取得
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# 知識を更新（バックグラウンドで実行して応答速度に影響しないようにする）
+"$SCRIPT_DIR/scripts/update_knowledge.sh" > /dev/null 2>&1 &
+
+# DNA拡張フォールバックラッパーを実行
+"$SCRIPT_DIR/scripts/dna_enhanced_fallback.sh" "$@"
