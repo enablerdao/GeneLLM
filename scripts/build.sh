@@ -71,16 +71,18 @@ fi
 # 実行ファイルをbinディレクトリにコピー
 cp gllm bin/
 
-# genellm と gm のシンボリックリンクを作成
+# genellm、gl、gm のシンボリックリンクを作成
 ln -sf gllm genellm
+ln -sf gllm gl
 ln -sf gllm gm
 
 # シンボリックリンクもbinディレクトリにコピー
 cp genellm bin/
+cp gl bin/
 cp gm bin/
 
 echo "ビルドが完了しました。"
-echo "実行方法: ./gllm \"質問文\" または ./genellm \"質問文\" または ./gm \"質問文\""
+echo "実行方法: ./gllm \"質問文\" または ./genellm \"質問文\" または ./gl \"質問文\" または ./gm \"質問文\""
 
 # 元のディレクトリに戻る
 cd "$CURRENT_DIR"
