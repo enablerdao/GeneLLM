@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# トークナイズされたファイルから単語ベクトルを更新するスクリプト
+# 使用方法: ./update-vectors [トークナイズされたファイルのディレクトリ]
+
+WORKSPACE="/workspace"
+VECTORS_FILE="$WORKSPACE/data/word_vectors.dat"
+WORD_LIST_FILE="$WORKSPACE/data/word_list.txt"
+TEMP_DIR="/tmp/genellm_vectors"
+
+# 引数の確認
+if [ $# -lt 1 ]; then
+    echo "使用方法: $0 <トークナイズされたファイルのディレクトリ>"
+    exit 1
+fi
+
+TOKENIZED_DIR="$1"
+
+# 必要なディレクトリを作成
+mkdir -p "$TEMP_DIR"
+mkdir -p "$(dirname "$VECTORS_FILE")"
+
+# トークナイズされたファイルの存在確認
+if [ ! -d "$TOKENIZED_DIR" ]; then
+    echo "エラー: 指定されたディレクトリが存在しません: $TOKENIZED_DIR"
+    exit 1
+fi
+
+# トークナイズされたファイルの数を確認
+FILE_COUNT=$(find "$TOKENIZED_DIR" -type f | wc -l)
+if [ "$FILE_COUNT" -eq 0 ]; then
+    echo "エラー: 指定されたディレクトリにファイルが見つかりません: $TOKENIZED_DIR"
+    exit 1
+fi
+
+echo "トークナイズされたファイルから単語を抽出しています..."
+
+# すべてのトークナイズされたファイルから単語を抽出
+find "$TOKENIZED_DIR" -type f -exec cat {} \; | grep -v "^--" | grep -v "^表層形" | cut -f1 | sort | uniq > "$TEMP_DIR/unique_words.txt"
+
+# 単語数を取得
+WORD_COUNT=$(wc -l < "$TEMP_DIR/unique_words.txt")
+echo "抽出された単語数: $WORD_COUNT"
+
+# 既存の単語リストと結合
+if [ -f "$WORD_LIST_FILE" ]; then
+    echo "既存の単語リストと結合しています..."
+    cat "$WORD_LIST_FILE" "$TEMP_DIR/unique_words.txt" | sort | uniq > "$TEMP_DIR/combined_words.txt"
+    COMBINED_COUNT=$(wc -l < "$TEMP_DIR/combined_words.txt")
+    NEW_WORDS=$((COMBINED_COUNT - $(wc -l < "$WORD_LIST_FILE")))
+    echo "新しく追加された単語数: $NEW_WORDS"
+    mv "$TEMP_DIR/combined_words.txt" "$WORD_LIST_FILE"
+else
+    echo "単語リストを新規作成しています..."
+    mv "$TEMP_DIR/unique_words.txt" "$WORD_LIST_FILE"
+fi
+
+# 単語ベクトルの生成
+echo "単語ベクトルを生成しています..."
+python3 -c "
+import numpy as np
+import os
+
+# 単語リストの読み込み
+word_list_file = '$WORD_LIST_FILE'
+vectors_file = '$VECTORS_FILE'
+
+with open(word_list_file, 'r') as f:
+    words = [line.strip() for line in f if line.strip()]
+
+# 単語数を取得
+word_count = len(words)
+print(f'処理する単語数: {word_count}')
+
+# ベクトルの次元数
+vector_dim = 300
+
+# 既存のベクトルファイルがあれば読み込む
+existing_vectors = {}
+if os.path.exists(vectors_file):
+    try:
+        with open(vectors_file, 'r') as f:
+            for line in f:
+                parts = line.strip().split(' ', 1)
+                if len(parts) == 2:
+                    word, vector_str = parts
+                    vector = np.array([float(x) for x in vector_str.split()])
+                    existing_vectors[word] = vector
+        print(f'既存のベクトル数: {len(existing_vectors)}')
+    except Exception as e:
+        print(f'既存のベクトルファイルの読み込みに失敗しました: {e}')
+        existing_vectors = {}
+
+# 新しいベクトルを生成
+new_vectors = {}
+for i, word in enumerate(words):
+    if i % 1000 == 0:
+        print(f'進捗: {i}/{word_count} 単語処理済み')
+    
+    # 既存のベクトルがあれば使用
+    if word in existing_vectors:
+        new_vectors[word] = existing_vectors[word]
+    else:
+        # 単語の文字コードを使用して疑似ランダムなベクトルを生成
+        np.random.seed(sum(ord(c) for c in word))
+        vector = np.random.uniform(-0.5, 0.5, vector_dim)
+        # 正規化
+        vector = vector / np.linalg.norm(vector)
+        new_vectors[word] = vector
+
+# ベクトルファイルに保存
+with open(vectors_file, 'w') as f:
+    for word, vector in new_vectors.items():
+        vector_str = ' '.join([str(x) for x in vector])
+        f.write(f'{word} {vector_str}\n')
+
+print(f'単語ベクトルを保存しました: {vectors_file}')
+"
+
+echo "単語ベクトルの更新が完了しました。"
+echo "単語リスト: $WORD_LIST_FILE"
+echo "ベクトルファイル: $VECTORS_FILE"
+
+# 一時ファイルを削除
+rm -rf "$TEMP_DIR"
