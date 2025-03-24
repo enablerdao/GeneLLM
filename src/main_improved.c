@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 
 #include "include/vector_db.h"
+#include "improved/include/answer_db.h"
 
 int main(int argc, char* argv[]) {
     // ロケールを設定（日本語対応）
@@ -21,6 +22,9 @@ int main(int argc, char* argv[]) {
 
     // ベクトルデータベースを初期化
     init_global_vector_db();
+    
+    // 回答データベースを初期化
+    init_answer_db();
 
     printf("GeneLLM 簡易版\n");
     printf("ベクトルデータベースのサイズ: %d\n", get_global_vector_db_size());
@@ -81,7 +85,14 @@ int main(int argc, char* argv[]) {
             if (debug_mode) {
                 printf("デバッグ情報: 対話モードで質問を処理中...\n");
             }
-            printf("応答: あなたの質問「%s」に対する回答はまだ実装されていません。\n", input);
+            
+            // 回答を検索
+            const char* answer = find_answer(input);
+            if (answer != NULL) {
+                printf("応答: %s\n", answer);
+            } else {
+                printf("応答: あなたの質問「%s」に対する回答はまだ実装されていません。\n", input);
+            }
         }
         return 0;
     }
@@ -101,8 +112,13 @@ int main(int argc, char* argv[]) {
         printf("デバッグ情報: 質問を処理中...\n");
     }
     
-    // 簡単な応答を生成
-    printf("応答: あなたの質問「%s」に対する回答はまだ実装されていません。\n", question);
+    // 回答を検索
+    const char* answer = find_answer(question);
+    if (answer != NULL) {
+        printf("応答: %s\n", answer);
+    } else {
+        printf("応答: あなたの質問「%s」に対する回答はまだ実装されていません。\n", question);
+    }
 
     return 0;
 }
