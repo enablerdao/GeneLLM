@@ -127,6 +127,7 @@ mkdir -p knowledge/text/wikipedia
 mkdir -p data/models
 mkdir -p data/vector_db
 mkdir -p logs
+touch knowledge/learning_db.txt
 
 # メインプログラムをビルド
 echo "メインプログラムをビルドしています..."

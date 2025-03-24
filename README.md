@@ -81,15 +81,15 @@ GeneLLMは以下の主要コンポーネントから構成されています：
 /
 ├── bin/           - コンパイル済みバイナリ
 ├── data/          - データファイル
-│   ├── japanese_words.txt  - 日本語単語リスト
-│   ├── knowledge_base/     - 知識ベース（カテゴリ別サブディレクトリを含む）
-│   │   └── system/         - システム関連の知識ファイル
-│   ├── knowledge_files/    - トピック別知識ファイル
-│   ├── knowledge_files_backup/ - バックアップされた知識ファイル
 │   ├── models/             - モデルデータ
-│   ├── training_data/      - 学習データ
 │   ├── vector_db/          - ベクトルデータベース
 │   └── word_vectors.dat    - 単語ベクトルデータ
+├── knowledge/     - 知識関連ファイル
+│   ├── base/               - 知識ベース（カテゴリ別サブディレクトリを含む）
+│   │   └── system/         - システム関連の知識ファイル
+│   ├── docs/               - トピック別知識ファイル
+│   └── text/               - テキストコーパス
+│       └── wikipedia/      - Wikipediaデータ
 ├── logs/          - ログファイル（質問と回答の履歴）
 └── src/           - ソースコード
     ├── analyzers/          - テキスト解析モジュール
