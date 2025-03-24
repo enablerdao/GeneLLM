@@ -8,6 +8,7 @@ VERSION="1.1.0"
 WORKSPACE_DIR="/workspace"
 BIN_DIR="$WORKSPACE_DIR/bin"
 SCRIPTS_DIR="$WORKSPACE_DIR/scripts"
+USE_C_VERSION="true"  # C言語実装を使用するかどうか
 CONFIG_FILE="$WORKSPACE_DIR/.genellm_config"
 LOG_DIR="$WORKSPACE_DIR/logs"
 
@@ -411,7 +412,44 @@ main() {
         version)
             echo "GeneLLM v$VERSION"
             ;;
-        ask|chat|server|web|update|compile|status|stop|config)
+        update)
+            # C言語実装の高速バージョンを使用するかどうかを確認
+            if [ -f "$WORKSPACE_DIR/bin/knowledge_manager" ] && [ "$USE_C_VERSION" = "true" ]; then
+                log info "C言語実装の高速バージョンを使用します"
+                
+                # C言語実装による知識ベース更新とトークナイズ
+                time "$WORKSPACE_DIR/bin/knowledge_manager" all || {
+                    log error "C言語実装による処理に失敗しました。シェルスクリプト版にフォールバックします。"
+                    USE_C_VERSION="false"
+                }
+                
+                if [ "$USE_C_VERSION" = "true" ]; then
+                    log info "知識ベースの更新とトークナイズが完了しました"
+                    return 0
+                fi
+            fi
+            
+            # シェルスクリプト版を使用
+            log info "シェルスクリプト版を使用します"
+            
+            # 知識ベースの更新
+            echo "知識ベースを更新しています..."
+            "$WORKSPACE_DIR/scripts/update_knowledge_optimized.sh" || {
+                log error "知識ベースの更新に失敗しました"
+                return 1
+            }
+            
+            # ナレッジとドキュメントのトークナイズ
+            echo "ナレッジとドキュメントをトークナイズしています..."
+            "$WORKSPACE_DIR/scripts/tokenize_knowledge.sh" || {
+                log error "トークナイズに失敗しました"
+                return 1
+            }
+            
+            log info "知識ベースの更新とトークナイズが完了しました"
+            return 0
+            ;;
+        ask|chat|server|web|compile|status|stop|config)
             # 既存のgenellmコマンドに転送
             "$WORKSPACE_DIR/genellm.bak" "$command" "${args[@]}"
             ;;
