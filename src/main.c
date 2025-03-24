@@ -8,6 +8,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <curl/curl.h>
+#include <sys/stat.h>
 
 // 外部LLMインターフェースのインクルード
 #include "include/llm_interface.c"
@@ -86,6 +87,7 @@ typedef struct {
     int pattern_count;              // パターン数
     KnowledgeEntry knowledge[MAX_KNOWLEDGE_ENTRIES]; // 知識ベース
     int knowledge_count;            // 知識エントリ数
+    float confidence;               // 信頼度
 } Topic;
 
 // エージェント構造体
@@ -622,10 +624,43 @@ void init_topics() {
 // ファイルから知識を読み込む
 void load_knowledge_from_file(const char* filename, int topic_id) {
     char filepath[256];
-    // 知識ファイルディレクトリから探す（相対パスを使用）
-    sprintf(filepath, "data/knowledge_files/%s", filename);
-    FILE* file = fopen(filepath, "r");
+    FILE* file = NULL;
+    static time_t last_check_time = 0;
+    static bool knowledge_base_checked = false;
     
+    // フォルダの変更を検出するために、一定時間ごとにチェック
+    time_t current_time = time(NULL);
+    if (!knowledge_base_checked || difftime(current_time, last_check_time) > 60) { // 1分ごとにチェック
+        // 知識ベースディレクトリの存在と変更をチェック
+        struct stat st;
+        if (stat("data/knowledge_base/system", &st) == 0) {
+            if (!knowledge_base_checked || st.st_mtime > last_check_time) {
+                // フォルダが存在し、前回のチェック以降に変更があった
+                knowledge_base_checked = true;
+                last_check_time = current_time;
+                printf("知識ベースディレクトリの変更を検出しました。\n");
+            }
+        }
+    }
+    
+    // 複数の可能なパスを試す
+    const char* search_paths[] = {
+        "data/knowledge_base/system/%s",
+        "data/knowledge_base/%s",
+        "data/knowledge_files/%s",
+        "data/%s"
+    };
+    
+    for (size_t i = 0; i < sizeof(search_paths) / sizeof(search_paths[0]); i++) {
+        sprintf(filepath, search_paths[i], filename);
+        file = fopen(filepath, "r");
+        if (file) {
+            // ファイルが見つかった
+            printf("ファイルを読み込みました: %s\n", filepath);
+            break;
+        }
+    }
+
     if (!file) {
         fprintf(stderr, "知識ファイルを開けませんでした: %s\n", filename);
         return;
@@ -782,7 +817,7 @@ int route_text(const char* text, char* response) {
         // 辞書の単語数（ベクトルデータベース）
         // 実際のベクトルデータベースのサイズを取得して表示
         sprintf(status_info + strlen(status_info), "辞書登録単語数: %d 語 (最大 %d 語)\n", 
-                get_global_vector_db_size(), 25000);
+                get_global_vector_db_size_impl(), 25000);
         sprintf(status_info + strlen(status_info), "ベクトル次元数: %d 次元\n", 64);
         
         strcpy(response, status_info);
@@ -834,6 +869,9 @@ int route_text(const char* text, char* response) {
     // 最適なトピックを見つける
     int best_topic = find_best_topic(tokens, token_count);
     
+    // 処理開始時間を記録
+    time_t start_time = time(NULL);
+    
     // エージェントのハンドラを呼び出す
     char result = agents[best_agent].handler(text, response, topics, best_topic);
     
@@ -841,16 +879,80 @@ int route_text(const char* text, char* response) {
     if (result && learning_db && strlen(response) > 0) {
         learning_db_add(learning_db, text, response, 0.9f);
         
+        // ログフォルダに質問と回答のペアを保存
+        char title[256];
+        time_t now = time(NULL);
+        struct tm *tm_info = localtime(&now);
+        char timestamp[30];
+        strftime(timestamp, 30, "%Y-%m-%d_%H-%M-%S", tm_info);
+        
+        snprintf(title, sizeof(title), "Q_%lu", (unsigned long)now);
+        
+        // ログディレクトリを作成
+        struct stat st = {0};
+        if (stat("data/logs", &st) == -1) {
+            mkdir("data/logs", 0700);
+        }
+        
+        // ログファイルのパスを作成
+        char log_path[512];
+        snprintf(log_path, sizeof(log_path), "data/logs/%s_%s.log", timestamp, title);
+        
+        // 単語数をカウント
+        int word_count = 0;
+        char *text_copy = strdup(text);
+        char *token = strtok(text_copy, " \t\n,.!?;:()[]{}\"'");
+        while (token != NULL) {
+            word_count++;
+            token = strtok(NULL, " \t\n,.!?;:()[]{}\"'");
+        }
+        free(text_copy);
+        
+        // デバッグ情報を含むコンテンツを作成
+        char content[8192];
+        snprintf(content, sizeof(content), 
+                "# 質問応答ログ: %s\n\n"
+                "## タイムスタンプ\n%s\n\n"
+                "## 質問\n%s\n\n"
+                "## 回答\n%s\n\n"
+                "## デバッグ情報\n"
+                "- 処理時間: %.3f秒\n"
+                "- 最適エージェント: %s\n"
+                "- 関連トピック: %s (信頼度: %.2f)\n"
+                "- 単語数: %d\n"
+                "- 文字数: %d\n"
+                "- 回答文字数: %d\n",
+                title, timestamp, text, response,
+                difftime(now, start_time),
+                agents[best_agent].name,
+                topics[best_topic].name, topics[best_topic].confidence,
+                word_count, (int)strlen(text), (int)strlen(response));
+        
+        // ログファイルに書き込み
+        FILE *log_file = fopen(log_path, "w");
+        if (log_file) {
+            fputs(content, log_file);
+            fclose(log_file);
+            printf("ログを保存しました: %s\n", log_path);
+        } else {
+            fprintf(stderr, "ログファイルを開けませんでした: %s\n", log_path);
+        }
+        
         // 知識ベースにも追加（質問と回答のペアを保存）
         if (knowledge_base) {
-            char title[256];
-            snprintf(title, sizeof(title), "Q_%lu", (unsigned long)time(NULL));
+            const char* tags[] = {"自動生成", "Q&A", "ログ"};
+            // ログファイルを生成
+            char log_filename[256];
+            time_t now = time(NULL);
+            struct tm *tm_now = localtime(&now);
+            char timestamp[32];
+            strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H-%M-%S", tm_now);
             
-            char content[4096];
-            snprintf(content, sizeof(content), "## 質問\n\n%s\n\n## 回答\n\n%s", text, response);
+            // ログファイル名を生成
+            snprintf(log_filename, sizeof(log_filename), "Q_%ld", (long)now);
             
-            const char* tags[] = {"自動生成", "Q&A"};
-            knowledge_base_add_document(knowledge_base, title, content, "質問回答", tags, 2);
+            // 知識ベースにドキュメントを追加
+            knowledge_base_add_document(knowledge_base, log_filename, content, "質問回答", tags, 3);
         }
     }
     
@@ -1136,7 +1238,7 @@ char handle_command(const char* text, char* response, Topic* topics, int topic_i
         // 辞書の単語数（ベクトルデータベース）
         // 実際のベクトルデータベースのサイズを取得して表示
         sprintf(status_info + strlen(status_info), "辞書登録単語数: %d 語 (最大 %d 語)\n", 
-                get_global_vector_db_size(), 25000);
+                get_global_vector_db_size_impl(), 25000);
         sprintf(status_info + strlen(status_info), "ベクトル次元数: %d 次元\n", 64);
         
         strcpy(response, status_info);
@@ -1785,14 +1887,14 @@ int main(int argc, char* argv[]) {
     init_inference_rules();
     
     // ベクトルデータベースを初期化
-    init_global_vector_db();
+    init_global_vector_db_impl();
     
     // 学習データベースを初期化
     learning_db = learning_db_init("data/learning_db.txt");
     
     // 知識ベースを初期化（既存のデータを保持）
     // system("rm -rf data/knowledge_base/*"); // 既存のナレッジベースを削除しないように変更
-    knowledge_base = knowledge_base_init("data/knowledge_base");
+    knowledge_base = knowledge_base_init("logs");
     
     // コマンドライン引数の解析
     int i = 1;  // 最初の引数から開始

@@ -24,24 +24,27 @@
 ├── data/          - データファイル
 │   ├── japanese_words.txt  - 日本語単語リスト
 │   ├── knowledge_base/     - 知識ベース（カテゴリ別サブディレクトリを含む）
-│   │   └── ai/             - AI関連の知識ファイル
+│   │   └── system/         - システム関連の知識ファイル
 │   ├── knowledge_files/    - トピック別知識ファイル
+│   ├── knowledge_files_backup/ - バックアップされた知識ファイル
 │   ├── models/             - モデルデータ
 │   ├── training_data/      - 学習データ
 │   ├── vector_db/          - ベクトルデータベース
 │   └── word_vectors.dat    - 単語ベクトルデータ
+├── logs/          - ログファイル（質問と回答の履歴）
 └── src/           - ソースコード
     ├── analyzers/          - テキスト解析モジュール
     ├── compressors/        - データ圧縮モジュール
     ├── generators/         - 文生成モジュール
     ├── include/            - 共通ヘッダとユーティリティ
     │   ├── knowledge_manager.c    - 知識ベース管理
-    │   ├── response_evaluator.c   - 回答評価メカニズム
-    │   └── improved_response_generator.c - 改良型回答生成
+    │   ├── learning_module.c      - 学習モジュール
+    │   ├── compiler_validator.c   - コンパイラ検証
+    │   ├── c_programming_router.c - C言語プログラミングルーター
+    │   └── vector_db.c            - ベクトルデータベース
     ├── routers/            - ルーティングモジュール
     ├── vector_search/      - ベクトル検索モジュール
-    │   ├── vector_search.c        - 基本ベクトル検索
-    │   └── vector_search_improved.c - 改良版ベクトル検索
+    │   └── vector_search.c        - ベクトル検索
     └── main.c              - メインプログラム
 ```
 
@@ -111,6 +114,9 @@ chmod +x build.sh
 
 # 対話モードを試す
 ./gllm -i
+
+# デバッグモードで実行（詳細な情報を表示）
+./gllm -d "量子コンピュータの仕組みを教えてください"
 
 # 単一のクエリを処理
 ./gllm "量子コンピュータの仕組みを教えてください"

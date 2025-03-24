@@ -48,6 +48,7 @@ gcc -Wall -Wextra -std=c99 -o gllm src/main.c src/vector_search/vector_search.c 
 ./gllm "あなたの質問文をここに入力"
 
 # デバッグモードで実行
+./gllm -d "あなたの質問文をここに入力"
 DEBUG=1 ./gllm "あなたの質問文をここに入力"
 ```
 

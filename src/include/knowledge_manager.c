@@ -3,7 +3,11 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <math.h>
+#include <time.h>
 #include "../vector_search/vector_search.h"
+
+// strptimeの宣言を追加
+extern char *strptime(const char *s, const char *format, struct tm *tm);
 
 #define KB_INITIAL_CAPACITY 50
 #define MAX_LINE_LENGTH 4096

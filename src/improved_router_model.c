@@ -810,7 +810,18 @@ int route_text(const char* text, char* response) {
             snprintf(content, sizeof(content), "## 質問\n\n%s\n\n## 回答\n\n%s", text, response);
             
             const char* tags[] = {"自動生成", "Q&A"};
-            knowledge_base_add_document(knowledge_base, title, content, "質問回答", tags, 2);
+            // ログファイルを生成
+            char log_filename[256];
+            time_t now = time(NULL);
+            struct tm *tm_now = localtime(&now);
+            char timestamp[32];
+            strftime(timestamp, sizeof(timestamp), "%Y-%m-%d_%H-%M-%S", tm_now);
+            
+            // ログファイル名を生成
+            snprintf(log_filename, sizeof(log_filename), "Q_%ld", (long)now);
+            
+            // 知識ベースにドキュメントを追加
+            knowledge_base_add_document(knowledge_base, log_filename, content, "質問回答", tags, 2);
         }
     }
     
@@ -1680,7 +1691,7 @@ int main(int argc, char* argv[]) {
     learning_db = learning_db_init("data/learning_db.txt");
     
     // 知識ベースを初期化
-    knowledge_base = knowledge_base_init("data/knowledge_base");
+    knowledge_base = knowledge_base_init("logs");
     
     // コマンドライン引数の解析
     int i = 1;  // 最初の引数から開始
