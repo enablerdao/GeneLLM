@@ -10,6 +10,14 @@
   <i>軽量・高速・シンプルなAI実装</i>
 </p>
 
+## ⚡ クイックスタート（1行で実行）
+
+```bash
+curl -sSL https://raw.githubusercontent.com/yourusername/lightweight-ai-c/main/quick_start.sh | bash
+```
+
+このコマンドは必要な依存関係をインストールし、プロジェクトをビルドして最初の質問を実行します。
+
 ---
 
 ## 📋 概要
