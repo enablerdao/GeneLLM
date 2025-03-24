@@ -1,47 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "c_programming_router.h"
-
-#define MAX_INPUT_LENGTH 1024
+#include "c_programming_router.c"
 
 int main() {
-    printf("C言語プログラミングルーター - 対話モード\n");
-    printf("終了するには 'exit' または 'quit' と入力してください\n\n");
-    
-    // ルーターの初期化
+    // C言語ルーターの初期化
     CRouter* router = init_c_programming_router();
     if (!router) {
         printf("ルーターの初期化に失敗しました\n");
         return 1;
     }
     
-    char input[MAX_INPUT_LENGTH];
+    // テスト入力
+    const char* test_inputs[] = {
+        "C言語でHello Worldを表示するプログラムを教えてください",
+        "hello worldプログラムの書き方を教えて",
+        "C言語の入門プログラムを教えてください"
+    };
     
-    while (1) {
-        printf("\n質問を入力してください: ");
+    // 各入力に対する応答を生成
+    for (int i = 0; i < sizeof(test_inputs) / sizeof(test_inputs[0]); i++) {
+        printf("入力: %s\n\n", test_inputs[i]);
         
-        // 入力を取得
-        if (fgets(input, MAX_INPUT_LENGTH, stdin) == NULL) {
-            break;
-        }
+        char* response = c_router_generate_response(router, test_inputs[i]);
+        printf("応答:\n%s\n\n", response);
         
-        // 改行文字を削除
-        size_t len = strlen(input);
-        if (len > 0 && input[len - 1] == '\n') {
-            input[len - 1] = '\0';
-        }
-        
-        // 終了コマンドをチェック
-        if (strcmp(input, "exit") == 0 || strcmp(input, "quit") == 0) {
-            printf("プログラムを終了します\n");
-            break;
-        }
-        
-        // 応答を生成
-        printf("\n=== 応答 ===\n");
-        char* response = c_router_generate_response(router, input);
-        printf("%s\n", response);
+        free(response);
+        printf("----------------------------------------\n\n");
     }
     
     // ルーターの解放

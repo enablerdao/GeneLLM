@@ -7,9 +7,9 @@
 extern VectorDB global_vector_db;
 
 // ベクトルデータベースを初期化
-void init_global_vector_db();
+void init_global_vector_db_impl();
 
 // 現在のベクトルデータベースのサイズを取得
-int get_global_vector_db_size();
+int get_global_vector_db_size_impl();
 
 #endif // VECTOR_DB_H

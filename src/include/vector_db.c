@@ -2,12 +2,16 @@
 #include "word_loader.h"
 #include <sys/stat.h>
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
 
 // グローバルなベクトルデータベース
-VectorDB global_vector_db;
+extern VectorDB global_vector_db;
 
 // ベクトルデータベースを初期化
-void init_global_vector_db() {
+void init_global_vector_db_impl() {
     init_vector_db(&global_vector_db);
     
     // データファイルのパス
@@ -67,6 +71,6 @@ void init_global_vector_db() {
 }
 
 // 現在のベクトルデータベースのサイズを取得
-int get_global_vector_db_size() {
+int get_global_vector_db_size_impl() {
     return global_vector_db.size;
 }
